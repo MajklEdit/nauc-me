@@ -70,3 +70,33 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- ─── Zájem o inzerát ───────────────────────────────────
+create table zajem (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default now(),
+  inzerat_id uuid references inzeraty(id) on delete cascade not null,
+  od_user_id uuid references auth.users(id) on delete cascade not null,
+  zprava text,
+  od_email text,
+  od_jmeno text
+);
+
+alter table zajem enable row level security;
+
+-- Vlastník inzerátu vidí zájem o svůj inzerát
+create policy "Vlastník vidí zájem"
+  on zajem for select
+  using (
+    auth.uid() = od_user_id
+    or auth.uid() = (select user_id from inzeraty where id = zajem.inzerat_id)
+  );
+
+-- Přihlášený může projevit zájem
+create policy "Přihlášený může projevit zájem"
+  on zajem for insert
+  with check (auth.uid() = od_user_id);
+
+create policy "Smazat může jen odesílatel"
+  on zajem for delete
+  using (auth.uid() = od_user_id);

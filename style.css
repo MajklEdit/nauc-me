@@ -1,3 +1,7 @@
+/* ════════════════════════════════════
+   nauc.me — style.css
+════════════════════════════════════ */
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
@@ -535,3 +539,161 @@ body {
 @media (min-width: 900px) {
   .cards-grid { grid-template-columns: repeat(4, 1fr); }
 }
+
+/* ════ PROFIL ════ */
+.profil-header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 28px 0 24px;
+  flex-wrap: wrap;
+}
+
+.profil-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--grad);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 800;
+  color: var(--dark); flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(0,180,140,0.2);
+}
+
+.profil-info { display: flex; flex-direction: column; gap: 3px; }
+
+.profil-jmeno {
+  font-family: 'Sora', sans-serif;
+  font-size: 18px; font-weight: 800; color: var(--dark);
+}
+
+.profil-email { font-size: 13px; color: var(--muted); }
+
+/* Záložky profilu */
+.profil-tabs {
+  display: flex; gap: 4px;
+  background: #F3F4F6; border-radius: 14px; padding: 4px;
+  margin-bottom: 24px;
+}
+
+.profil-tab {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 11px 16px; border-radius: 11px;
+  font-size: 14px; font-weight: 600; color: var(--muted);
+  cursor: pointer; transition: all 0.15s;
+}
+
+.profil-tab.active {
+  background: white; color: var(--dark);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+}
+
+.profil-tab:hover:not(.active) { color: var(--dark); }
+
+/* Seznam inzerátů v profilu */
+.profil-list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 60px; }
+
+.profil-inzerat-card {
+  background: white; border-radius: 16px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+  display: flex; align-items: flex-start; gap: 14px;
+  animation: fadeUp 0.3s ease both;
+}
+
+.profil-inzerat-emoji {
+  font-size: 32px; flex-shrink: 0;
+  width: 52px; height: 52px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+}
+
+.profil-inzerat-body { flex: 1; min-width: 0; }
+
+.profil-inzerat-nazev {
+  font-family: 'Sora', sans-serif;
+  font-size: 15px; font-weight: 700; color: var(--dark);
+  margin-bottom: 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.profil-inzerat-meta {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  font-size: 12px; color: var(--muted);
+}
+
+.profil-inzerat-tag {
+  background: #F3F4F6; border-radius: 6px;
+  padding: 2px 8px; font-size: 12px; color: var(--mid);
+}
+
+.profil-inzerat-actions {
+  display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
+}
+
+.profil-btn {
+  padding: 6px 12px; border-radius: 8px; border: none;
+  font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.profil-btn.edit   { background: #EEF0FF; color: var(--accent); }
+.profil-btn.delete { background: #FEF2F2; color: #DC2626; }
+.profil-btn.edit:hover   { background: var(--accent); color: white; }
+.profil-btn.delete:hover { background: #DC2626; color: white; }
+
+/* Zájem karty */
+.zajem-card {
+  background: white; border-radius: 16px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+  animation: fadeUp 0.3s ease both;
+  border-left: 3px solid var(--accent);
+}
+
+.zajem-card-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.zajem-inzerat-nazev {
+  font-family: 'Sora', sans-serif;
+  font-size: 13px; font-weight: 700; color: var(--accent);
+  margin-bottom: 4px; cursor: pointer;
+}
+.zajem-inzerat-nazev:hover { text-decoration: underline; }
+
+.zajem-od {
+  font-size: 13px; font-weight: 600; color: var(--dark); margin-bottom: 2px;
+}
+
+.zajem-zprava {
+  font-size: 13px; color: var(--mid); line-height: 1.5;
+  background: #F9FAFB; border-radius: 10px; padding: 10px 12px;
+  margin-top: 8px;
+}
+
+.zajem-datum {
+  font-size: 11px; color: var(--muted); margin-top: 8px;
+}
+
+.profil-empty {
+  text-align: center; padding: 48px 20px;
+  color: var(--muted); font-size: 15px;
+}
+.profil-empty-icon { font-size: 48px; margin-bottom: 12px; }
+.profil-empty h3 { font-family: 'Sora', sans-serif; font-size: 16px; color: var(--mid); margin-bottom: 6px; }
+
+/* Zájem tlačítko na kartičce */
+.btn-zajem {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; margin-top: 10px; padding: 10px;
+  background: #F3F4F6; color: var(--mid);
+  border: none; border-radius: 10px;
+  font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-zajem:hover { background: var(--accent); color: white; }
+
+/* Modal zájem */
+.zajem-form { text-align: left; }
+.zajem-form textarea {
+  width: 100%; min-height: 90px; padding: 12px;
+  border: 1.5px solid #E5E7EB; border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  outline: none; resize: none; margin-top: 12px; margin-bottom: 12px;
+}
+.zajem-form textarea:focus { border-color: var(--accent); }

@@ -39,10 +39,15 @@ function showPage(id) {
     document.getElementById('modal-auth-guard').classList.add('show')
     return
   }
+  if (id === 'page-profil' && !currentUser) {
+    document.getElementById('modal-auth-guard').classList.add('show')
+    return
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   document.getElementById(id).classList.add('active')
   window.scrollTo(0, 0)
   if (id === 'page-browse') nactiInzeraty()
+  if (id === 'page-profil') nactiProfil()
 }
 
 function closeModal(id) {
@@ -169,6 +174,9 @@ function renderKarta(i) {
         <div class="card-title">${escHtml(i.nazev)}</div>
         ${cena ? `<div class="card-price">💰 ${escHtml(cena)}</div>` : ''}
         ${i.lokalita ? `<div class="card-loc">📍 ${escHtml(i.lokalita)}</div>` : ''}
+        <button class="btn-zajem" onclick="projevitZajem('${i.id}')">
+          ✉️ Mám zájem
+        </button>
       </div>
     </div>`
 }
@@ -333,4 +341,215 @@ Object.assign(window, {
   openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
   togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
   useCustomPredmet, toggleDropdown, selectDd, pridatInzerat
+})
+
+// ─────────────────────────────────────
+//  PROFIL
+// ─────────────────────────────────────
+
+async function nactiProfil() {
+  if (!currentUser) return
+
+  // Nastav základní info
+  const jmeno = currentUser.user_metadata?.jmeno || ''
+  const prijmeni = currentUser.user_metadata?.prijmeni || ''
+  const displayJmeno = [jmeno, prijmeni].filter(Boolean).join(' ') || currentUser.email.split('@')[0]
+
+  const avatarEl = document.getElementById('profil-avatar')
+  const jmenoEl  = document.getElementById('profil-jmeno')
+  const emailEl  = document.getElementById('profil-email')
+
+  if (avatarEl) avatarEl.textContent = displayJmeno.charAt(0).toUpperCase()
+  if (jmenoEl)  jmenoEl.textContent  = displayJmeno
+  if (emailEl)  emailEl.textContent  = currentUser.email
+
+  // Načti aktivní záložku
+  nactiMojeInzeraty()
+}
+
+async function nactiMojeInzeraty() {
+  const list = document.getElementById('moje-inzeraty-list')
+  if (!list || !currentUser) return
+
+  list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">⏳</div><p>Načítám...</p></div>'
+
+  const { data, error } = await supabase
+    .from('inzeraty')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) {
+    list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">😕</div><h3>Chyba při načítání</h3></div>'
+    return
+  }
+
+  if (data.length === 0) {
+    list.innerHTML = `
+      <div class="profil-empty">
+        <div class="profil-empty-icon">📋</div>
+        <h3>Zatím žádné inzeráty</h3>
+        <p>Přidej svůj první inzerát a oslovuj studenty.</p>
+        <button class="submit-btn" style="max-width:220px;margin:16px auto 0" onclick="showPage('page-add')">+ Přidat inzerát</button>
+      </div>`
+    return
+  }
+
+  list.innerHTML = data.map(i => renderProfilInzerat(i)).join('')
+}
+
+function renderProfilInzerat(i) {
+  const emoji = getPredmetEmoji(i.predmet)
+  const cena  = i.cena_dohodou ? 'Dohodou'
+    : i.cena_od ? `${i.cena_od}${i.cena_do ? ' – ' + i.cena_do : ''} Kč/hod` : '—'
+  const datum = new Date(i.created_at).toLocaleDateString('cs-CZ', { day:'numeric', month:'short', year:'numeric' })
+
+  return `
+    <div class="profil-inzerat-card" id="inzerat-card-${i.id}">
+      <div class="profil-inzerat-emoji">${emoji}</div>
+      <div class="profil-inzerat-body">
+        <div class="profil-inzerat-nazev">${escHtml(i.nazev)}</div>
+        <div class="profil-inzerat-meta">
+          <span class="profil-inzerat-tag">📚 ${escHtml(i.predmet || '—')}</span>
+          ${i.lokalita ? `<span class="profil-inzerat-tag">📍 ${escHtml(i.lokalita)}</span>` : ''}
+          <span class="profil-inzerat-tag">💰 ${cena}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Přidáno ${datum}</div>
+      </div>
+      <div class="profil-inzerat-actions">
+        <button class="profil-btn delete" onclick="potvrditSmazani('${i.id}')">🗑 Smazat</button>
+      </div>
+    </div>`
+}
+
+async function nactiPrijatyZajem() {
+  const list = document.getElementById('zajem-list')
+  if (!list || !currentUser) return
+
+  list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">⏳</div><p>Načítám...</p></div>'
+
+  // Načti zájem o inzeráty tohoto uživatele
+  const { data, error } = await supabase
+    .from('zajem')
+    .select('*, inzeraty(nazev, predmet)')
+    .eq('inzeraty.user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+
+  // Alternativní query — přes join
+  const { data: data2, error: error2 } = await supabase
+    .from('zajem')
+    .select(`
+      *,
+      inzeraty!inner(nazev, predmet, user_id)
+    `)
+    .eq('inzeraty.user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+
+  const items = data2 || data || []
+
+  if (error2 && error) {
+    list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">😕</div><h3>Chyba při načítání</h3></div>'
+    return
+  }
+
+  if (!items.length) {
+    list.innerHTML = `
+      <div class="profil-empty">
+        <div class="profil-empty-icon">💬</div>
+        <h3>Zatím žádný zájem</h3>
+        <p>Zde uvidíš zprávy od studentů, kteří se zajímají o tvé inzeráty.</p>
+      </div>`
+    return
+  }
+
+  list.innerHTML = items.map(z => renderZajemKarta(z)).join('')
+}
+
+function renderZajemKarta(z) {
+  const datum = new Date(z.created_at).toLocaleDateString('cs-CZ', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+  const nazev = z.inzeraty?.nazev || 'Inzerát'
+  const jmeno = z.od_jmeno || z.od_email || 'Anonymní'
+
+  return `
+    <div class="zajem-card">
+      <div class="zajem-card-header">
+        <div>
+          <div class="zajem-inzerat-nazev">📋 ${escHtml(nazev)}</div>
+          <div class="zajem-od">👤 ${escHtml(jmeno)}</div>
+          ${z.od_email ? `<div style="font-size:12px;color:var(--muted)">${escHtml(z.od_email)}</div>` : ''}
+        </div>
+      </div>
+      ${z.zprava ? `<div class="zajem-zprava">"${escHtml(z.zprava)}"</div>` : ''}
+      <div class="zajem-datum">📅 ${datum}</div>
+    </div>`
+}
+
+function switchProfilTab(tab) {
+  document.querySelectorAll('.profil-tab').forEach(t => t.classList.remove('active'))
+  document.getElementById('ptab-' + tab).classList.add('active')
+  document.getElementById('ptab-content-moje').style.display  = tab === 'moje'  ? 'block' : 'none'
+  document.getElementById('ptab-content-zajem').style.display = tab === 'zajem' ? 'block' : 'none'
+  if (tab === 'zajem') nactiPrijatyZajem()
+  else nactiMojeInzeraty()
+}
+
+// ─── Smazání inzerátu ───
+let inzeratKeSmazani = null
+
+function potvrditSmazani(id) {
+  inzeratKeSmazani = id
+  document.getElementById('modal-smazat').classList.add('show')
+  document.getElementById('btn-confirm-smazat').onclick = () => smazatInzerat(id)
+}
+
+async function smazatInzerat(id) {
+  closeModal('modal-smazat')
+  const { error } = await supabase.from('inzeraty').delete().eq('id', id)
+  if (error) { showToast('Chyba při mazání: ' + error.message); return }
+  // Odeber kartu z DOM
+  const card = document.getElementById('inzerat-card-' + id)
+  if (card) card.style.display = 'none'
+  showToast('Inzerát byl smazán 🗑')
+  nactiMojeInzeraty()
+}
+
+// ─── Zájem o inzerát (tlačítko na kartičce v browse) ───
+let inzeratProZajem = null
+
+function projevitZajem(inzeratId) {
+  if (!currentUser) {
+    document.getElementById('modal-auth-guard').classList.add('show')
+    return
+  }
+  inzeratProZajem = inzeratId
+  document.getElementById('modal-zajem').classList.add('show')
+  document.getElementById('zajem-zprava-input').value = ''
+}
+
+async function odeslatzajem() {
+  if (!currentUser || !inzeratProZajem) return
+  const zprava = document.getElementById('zajem-zprava-input')?.value.trim()
+
+  setLoading('btn-odeslat-zajem', true)
+
+  const { error } = await supabase.from('zajem').insert({
+    inzerat_id: inzeratProZajem,
+    od_user_id: currentUser.id,
+    zprava: zprava || null,
+    od_email: currentUser.email,
+    od_jmeno: currentUser.user_metadata?.jmeno || null
+  })
+
+  setLoading('btn-odeslat-zajem', false)
+
+  if (error) { showToast('Chyba: ' + error.message); return }
+  closeModal('modal-zajem')
+  showToast('Zájem byl odeslán! 🎉')
+  inzeratProZajem = null
+}
+
+// Přidej do window
+Object.assign(window, {
+  nactiProfil, switchProfilTab, potvrditSmazani, smazatInzerat,
+  projevitZajem, odeslatzajem
 })

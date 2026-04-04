@@ -50,6 +50,10 @@
     </div>
   </div>
   <div id="sm-logged-in" style="display:none">
+    <div class="slide-menu-item" onclick="closeMenu(); showPage('page-profil')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Můj profil
+    </div>
     <div class="slide-menu-item" onclick="closeMenu(); showPage('page-add')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       Přidat inzerát
@@ -75,6 +79,7 @@
         <button class="nav-btn solid" onclick="showPage('page-register')">Vytvořit účet</button>
       </span>
       <span id="nav-li" style="display:none">
+        <button class="nav-btn ghost" onclick="showPage('page-profil')" id="nav-user-name">Můj profil</button>
         <button class="nav-btn ghost" onclick="showPage('page-add')">+ Přidat inzerát</button>
         <button class="nav-btn solid" onclick="doLogout()">Odhlásit se</button>
       </span>
@@ -292,7 +297,55 @@
   </div>
 </div>
 
+<!-- ══════ PROFIL ══════ -->
+<div id="page-profil" class="page">
+  <div class="page-wrap">
+
+    <!-- Hlavička profilu -->
+    <div class="profil-header">
+      <div class="profil-avatar" id="profil-avatar">?</div>
+      <div class="profil-info">
+        <div class="profil-jmeno" id="profil-jmeno">—</div>
+        <div class="profil-email" id="profil-email">—</div>
+      </div>
+      <button class="nav-btn solid" style="margin-left:auto;font-size:13px;padding:8px 16px" onclick="showPage('page-add')">+ Nový inzerát</button>
+    </div>
+
+    <!-- Záložky -->
+    <div class="profil-tabs">
+      <div class="profil-tab active" id="ptab-moje"    onclick="switchProfilTab('moje')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Moje inzeráty
+      </div>
+      <div class="profil-tab" id="ptab-zajem" onclick="switchProfilTab('zajem')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Přijatý zájem
+      </div>
+    </div>
+
+    <!-- TAB: Moje inzeráty -->
+    <div id="ptab-content-moje">
+      <div id="moje-inzeraty-list" class="profil-list"></div>
+    </div>
+
+    <!-- TAB: Přijatý zájem -->
+    <div id="ptab-content-zajem" style="display:none">
+      <div id="zajem-list" class="profil-list"></div>
+    </div>
+
+  </div>
+</div>
+
 <!-- ══════ MODALS ══════ -->
+<div class="overlay" id="modal-smazat">
+  <div class="modal-card">
+    <div class="modal-emoji">🗑️</div>
+    <div class="modal-title">Smazat inzerát?</div>
+    <p class="modal-desc">Tato akce je nevratná. Inzerát bude trvale odstraněn.</p>
+    <button class="modal-btn" style="background:#DC2626" id="btn-confirm-smazat">Ano, smazat</button>
+    <button class="modal-btn secondary" onclick="closeModal('modal-smazat')">Zrušit</button>
+  </div>
+</div>
 <div class="overlay" id="modal-success">
   <div class="modal-card">
     <div class="modal-emoji">🎉</div>
@@ -309,6 +362,19 @@
     <p class="modal-desc">Pro přidání inzerátu se musíš nejdříve přihlásit nebo vytvořit účet.</p>
     <button class="modal-btn" onclick="closeModal('modal-auth-guard'); showPage('page-login')">Přihlásit se</button>
     <button class="modal-btn secondary" onclick="closeModal('modal-auth-guard'); showPage('page-register')">Vytvořit účet</button>
+  </div>
+</div>
+
+<div class="overlay" id="modal-zajem">
+  <div class="modal-card">
+    <div class="modal-emoji">✉️</div>
+    <div class="modal-title">Projevit zájem</div>
+    <p class="modal-desc">Napiš krátkou zprávu tutorovi. Uvidí tvůj email.</p>
+    <div class="zajem-form">
+      <textarea id="zajem-zprava-input" placeholder="Ahoj, mám zájem o doučování..."></textarea>
+    </div>
+    <button class="modal-btn" id="btn-odeslat-zajem" onclick="odeslatzajem()">Odeslat zájem</button>
+    <button class="modal-btn secondary" onclick="closeModal('modal-zajem')">Zrušit</button>
   </div>
 </div>
 
