@@ -1,24 +1,36 @@
 // ════════════════════════════════════
 //   nauc.me — app.js
 // ════════════════════════════════════
-import { supabase } from './supabase.js'
 
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+
+// ⚠️ Doplň své klíče:
+const SUPABASE_URL = 'https://dxibiwizupnnmsdqovee.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWJpd2l6dXBubm1zZHFvdmVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDI5NDMsImV4cCI6MjA5MDgxODk0M30.KEdRUbKDqfwWooeCeuHNDScBQWGp7c7R9VGv8lWHsaY'
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
+
+// ─────────────────────────────────────
+//  STAV
+// ─────────────────────────────────────
 let currentUser = null
+let vsechnyInzeraty = []
+let aktivniKategorie = 'vse'
+let oblibene = new Set(JSON.parse(localStorage.getItem('oblibene') || '[]'))
 
-// ─── INIT ───
+// ─────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (session) { currentUser = session.user; onLogin(currentUser) }
 
-  supabase.auth.onAuthStateChange((_e, session) => {
+  supabase.auth.onAuthStateChange((_event, session) => {
     if (session) { currentUser = session.user; onLogin(currentUser) }
-    else { currentUser = null; onLogout() }
+    else         { currentUser = null; onLogout() }
   })
 
-  // Skryj anon pole pokud je přihlášen
-  updateAnonFields()
   nactiInzeraty()
-  nactiStats()
 
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', function () {
@@ -28,11 +40,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   })
 })
 
-// ─── NAVIGACE ───
+// ─────────────────────────────────────
+//  NAVIGACE
+// ─────────────────────────────────────
 function showPage(id) {
+  if (id === 'page-add' && !currentUser) {
+    document.getElementById('modal-auth-guard').classList.add('show')
+    return
+  }
   if (id === 'page-profil' && !currentUser) {
-    document.getElementById('modal-auth-guard') && document.getElementById('modal-auth-guard').classList.add('show')
-    showPage('page-login'); return
+    document.getElementById('modal-auth-guard').classList.add('show')
+    return
   }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   document.getElementById(id).classList.add('active')
@@ -42,18 +60,13 @@ function showPage(id) {
 }
 
 function closeModal(id) {
-  document.getElementById(id)?.classList.remove('show')
+  document.getElementById(id).classList.remove('show')
+  if (id === 'modal-detail') document.body.style.overflow = ''
 }
 
-// ─── STATS ───
-async function nactiStats() {
-  const { count } = await supabase
-    .from('inzeraty').select('*', { count: 'exact', head: true })
-  const el = document.getElementById('stats-count')
-  if (el) el.textContent = count ?? '—'
-}
-
-// ─── REGISTRACE ───
+// ─────────────────────────────────────
+//  REGISTRACE
+// ─────────────────────────────────────
 async function doRegister() {
   const jmeno    = document.getElementById('reg-jmeno').value.trim()
   const prijmeni = document.getElementById('reg-prijmeni').value.trim()
@@ -72,37 +85,47 @@ async function doRegister() {
     options: { data: { jmeno, prijmeni, telefon } }
   })
   setLoading('btn-register', false)
+
   if (error) return showError('reg-error', prekladChyby(error.message))
-  showPage('page-home'); showToast('Zkontroluj email a potvrď registraci 📧')
+  showPage('page-home')
+  showToast('Zkontroluj email a potvrď registraci 📧')
 }
 
-// ─── PŘIHLÁŠENÍ ───
+// ─────────────────────────────────────
+//  PŘIHLÁŠENÍ
+// ─────────────────────────────────────
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim()
   const heslo = document.getElementById('login-heslo').value
+
   if (!email || !heslo) return showError('login-error', 'Vyplň email a heslo.')
+
   setLoading('btn-login', true)
   const { error } = await supabase.auth.signInWithPassword({ email, password: heslo })
   setLoading('btn-login', false)
+
   if (error) return showError('login-error', prekladChyby(error.message))
 }
 
-// ─── ODHLÁŠENÍ ───
-async function doLogout() { await supabase.auth.signOut(); closeMenu() }
+// ─────────────────────────────────────
+//  ODHLÁŠENÍ
+// ─────────────────────────────────────
+async function doLogout() {
+  await supabase.auth.signOut()
+  closeMenu()
+}
 
 function onLogin(user) {
-  updateAnonFields()
   document.getElementById('nav-lo').style.display = 'none'
   document.getElementById('nav-li').style.display = 'inline-flex'
   document.getElementById('sm-logged-out').style.display = 'none'
   document.getElementById('sm-logged-in').style.display = 'block'
   const jmeno = user.user_metadata?.jmeno || user.email.split('@')[0]
   const el = document.getElementById('nav-user-name')
-  if (el) el.textContent = '👤 ' + jmeno
+  if (el) el.textContent = jmeno
 }
 
 function onLogout() {
-  updateAnonFields()
   document.getElementById('nav-lo').style.display = 'inline-flex'
   document.getElementById('nav-li').style.display = 'none'
   document.getElementById('sm-logged-out').style.display = 'block'
@@ -110,109 +133,228 @@ function onLogout() {
   showPage('page-home')
 }
 
-function updateAnonFields() {
-  const anonFields = document.getElementById('anon-fields')
-  if (!anonFields) return
-  anonFields.style.display = currentUser ? 'none' : 'block'
-}
-
-// ─── NAČTENÍ INZERÁTŮ ───
+// ─────────────────────────────────────
+//  NAČTENÍ INZERÁTŮ
+// ─────────────────────────────────────
 async function nactiInzeraty() {
   const grid = document.getElementById('cards-grid')
   if (!grid) return
+
   grid.innerHTML = '<div class="loading-msg">Načítám inzeráty...</div>'
 
   const { data, error } = await supabase
-    .from('inzeraty').select('*, profily(jmeno, prijmeni)')
-    .order('created_at', { ascending: false }).limit(20)
+    .from('inzeraty')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100)
 
-  if (error) { grid.innerHTML = '<div class="loading-msg">Chyba při načítání 😕</div>'; return }
-  if (!data.length) { grid.innerHTML = '<div class="loading-msg">Zatím žádné inzeráty. Buď první! 🚀</div>'; return }
+  if (error) { grid.innerHTML = '<div class="loading-msg">Chyba při načítání 😕</div>'; console.error(error); return }
 
-  grid.innerHTML = data.map(renderKarta).join('')
-  grid.querySelectorAll('.heart-btn').forEach(btn => {
-    btn.addEventListener('click', e => { e.stopPropagation(); btn.textContent = btn.textContent.trim() === '🤍' ? '❤️' : '🤍' })
+  vsechnyInzeraty = data || []
+  zobrazFiltrované()
+}
+
+// ─────────────────────────────────────
+//  FILTROVÁNÍ A VYHLEDÁVÁNÍ
+// ─────────────────────────────────────
+function setKategorie(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  aktivniKategorie = el.dataset.kategorie
+  zobrazFiltrované()
+}
+
+function filterInzeraty() {
+  zobrazFiltrované()
+}
+
+function zobrazFiltrované() {
+  const grid = document.getElementById('cards-grid')
+  if (!grid) return
+
+  const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim()
+
+  const KATEGORIE_MAP = {
+    matematika:   ['mat', 'algebra', 'geometri', 'statist', 'kalkul'],
+    jazyky:       ['angl', 'němč', 'češt', 'španěl', 'francouz', 'jazyk', 'latin'],
+    prirodni:     ['fyz', 'chem', 'bio', 'přírod', 'ekolog', 'geograf'],
+    humanitni:    ['děj', 'filosof', 'psycholog', 'sociolog', 'humanit', 'ekonom'],
+    programovani: ['prog', 'kód', 'python', 'java', 'web', 'it ', 'software', 'html', 'css', 'grafik', 'sociální'],
+  }
+
+  let filtered = vsechnyInzeraty.filter(i => {
+    // Filtr oblíbených
+    if (aktivniKategorie === 'oblibene') return oblibene.has(i.id)
+
+    // Filtr kategorie
+    if (aktivniKategorie !== 'vse') {
+      const klicova = KATEGORIE_MAP[aktivniKategorie] || []
+      const predmet = (i.predmet || '').toLowerCase()
+      const nazev   = (i.nazev   || '').toLowerCase()
+      if (!klicova.some(k => predmet.includes(k) || nazev.includes(k))) return false
+    }
+
+    // Fulltextové hledání
+    if (query) {
+      const text = `${i.nazev} ${i.predmet} ${i.popis || ''} ${i.lokalita || ''}`.toLowerCase()
+      if (!text.includes(query)) return false
+    }
+
+    return true
   })
+
+  if (!filtered.length) {
+    if (aktivniKategorie === 'oblibene') {
+      grid.innerHTML = '<div class="loading-msg">Zatím žádné oblíbené. Klikni na 🤍 u inzerátu!</div>'
+    } else {
+      grid.innerHTML = '<div class="loading-msg">Žádné výsledky 🔍</div>'
+    }
+    return
+  }
+
+  grid.innerHTML = filtered.map(renderKarta).join('')
+
+  grid.querySelectorAll('.heart-btn').forEach(btn => {
+    const id = btn.dataset.id
+    btn.textContent = oblibene.has(id) ? '❤️' : '🤍'
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation()
+      toggleOblibeny(id, this)
+    })
+  })
+}
+
+function toggleOblibeny(id, btn) {
+  if (oblibene.has(id)) {
+    oblibene.delete(id)
+    btn.textContent = '🤍'
+  } else {
+    oblibene.add(id)
+    btn.textContent = '❤️'
+  }
+  localStorage.setItem('oblibene', JSON.stringify([...oblibene]))
+  // Pokud jsme na záložce oblíbené, překresli
+  if (aktivniKategorie === 'oblibene') zobrazFiltrované()
 }
 
 function renderKarta(i) {
   const cena = i.cena_dohodou ? 'Dohodou'
     : i.cena_od && i.cena_do ? `${i.cena_od} – ${i.cena_do} Kč/hod`
     : i.cena_od ? `od ${i.cena_od} Kč/hod` : ''
+
   const emoji = getPredmetEmoji(i.predmet)
   const cls   = getPredmetClass(i.predmet)
-  // Obrázek nebo emoji
-  const imgContent = i.obrazek_url
-    ? `<img src="${escHtml(i.obrazek_url)}" alt="${escHtml(i.nazev)}">`
-    : `<span>${emoji}</span>`
+  const img   = i.obrazek_url
+    ? `<img src="${i.obrazek_url}" style="width:100%;height:100%;object-fit:cover">`
+    : `<span style="font-size:52px">${emoji}</span>`
 
   return `
-    <div class="card" onclick="zobrazDetail('${i.id}')">
+    <div class="card" onclick="otevritDetail('${i.id}')" style="cursor:pointer">
       <div class="card-img ${cls}">
-        <div class="heart-btn" onclick="event.stopPropagation()">🤍</div>
-        ${imgContent}
+        <div class="heart-btn" data-id="${i.id}">🤍</div>${img}
       </div>
       <div class="card-body">
-        <div class="card-meta"><span class="card-subject">📚 ${escHtml(i.predmet || 'Doučování')}</span></div>
+        <div class="card-meta">
+          <span class="card-subject">📚 ${escHtml(i.predmet || 'Doučování')}</span>
+        </div>
         <div class="card-title">${escHtml(i.nazev)}</div>
         ${cena ? `<div class="card-price">💰 ${escHtml(cena)}</div>` : ''}
         ${i.lokalita ? `<div class="card-loc">📍 ${escHtml(i.lokalita)}</div>` : ''}
-        <button class="btn-zajem" onclick="event.stopPropagation(); projevitZajem('${i.id}')">✉️ Mám zájem</button>
       </div>
     </div>`
 }
 
-// ─── DETAIL INZERÁTU ───
-async function zobrazDetail(id) {
-  showPage('page-detail')
-  const content = document.getElementById('detail-content')
-  content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">Načítám...</div>'
+// ─────────────────────────────────────
+//  DETAIL INZERÁTU
+// ─────────────────────────────────────
+let detailInzeratId = null
 
-  const { data: i, error } = await supabase
-    .from('inzeraty').select('*, profily(jmeno, prijmeni)')
-    .eq('id', id).single()
+function otevritDetail(id) {
+  const inzerat = vsechnyInzeraty.find(i => i.id === id)
+  if (!inzerat) return
+  detailInzeratId = id
 
-  if (error || !i) { content.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">Inzerát nenalezen.</div>'; return }
+  const cena = inzerat.cena_dohodou ? 'Dohodou'
+    : inzerat.cena_od && inzerat.cena_do ? `${inzerat.cena_od} – ${inzerat.cena_do} Kč/hod`
+    : inzerat.cena_od ? `od ${inzerat.cena_od} Kč/hod` : null
 
-  const cena = i.cena_dohodou ? 'Dohodou'
-    : i.cena_od && i.cena_do ? `${i.cena_od} – ${i.cena_do} Kč / hod`
-    : i.cena_od ? `od ${i.cena_od} Kč / hod` : null
+  const emoji = getPredmetEmoji(inzerat.predmet)
+  const cls   = getPredmetClass(inzerat.predmet)
 
-  const autorJmeno = i.profily?.jmeno
-    ? `${i.profily.jmeno} ${i.profily.prijmeni || ''}`
-    : (i.autor_jmeno || i.autor_email?.split('@')[0] || 'Tutor')
+  // Obrázek
+  const obrazekWrap = document.getElementById('detail-obrazek-wrap')
+  if (inzerat.obrazek_url) {
+    obrazekWrap.innerHTML = `<img src="${inzerat.obrazek_url}" alt="${escHtml(inzerat.nazev)}">`
+  } else {
+    obrazekWrap.innerHTML = `<div class="detail-obrazek-placeholder ${cls}">${emoji}</div>`
+  }
 
-  const heroContent = i.obrazek_url
-    ? `<img src="${escHtml(i.obrazek_url)}" alt="${escHtml(i.nazev)}">`
-    : `<span>${getPredmetEmoji(i.predmet)}</span>`
+  // Tagy
+  const tags = [inzerat.predmet, inzerat.koho_hledam].filter(Boolean)
+  document.getElementById('detail-tags').innerHTML = tags.map(t =>
+    `<span class="detail-tag">📚 ${escHtml(t)}</span>`
+  ).join('')
 
-  content.innerHTML = `
-    <div class="detail-hero">${heroContent}</div>
-    <div class="detail-title">${escHtml(i.nazev)}</div>
-    <div class="detail-tags">
-      ${i.predmet ? `<span class="detail-tag">📚 ${escHtml(i.predmet)}</span>` : ''}
-      ${i.lokalita ? `<span class="detail-tag">📍 ${escHtml(i.lokalita)}</span>` : ''}
-      ${cena ? `<span class="detail-tag">💰 ${escHtml(cena)}</span>` : ''}
-      ${i.koho_hledam ? `<span class="detail-tag">${escHtml(i.koho_hledam)}</span>` : ''}
-    </div>
-    ${i.popis ? `<div class="detail-popis">${i.popis}</div>` : ''}
-    <div class="detail-autor">
-      <div class="detail-autor-avatar">${autorJmeno.charAt(0).toUpperCase()}</div>
-      <div>
-        <div class="detail-autor-name">${escHtml(autorJmeno)}</div>
-        <div class="detail-autor-sub">Tutor na nauc.me</div>
-      </div>
-    </div>
-    <button class="detail-zajem-btn" onclick="projevitZajem('${i.id}')">✉️ Mám zájem o doučování</button>
-  `
+  // Název
+  document.getElementById('detail-nazev').textContent = inzerat.nazev
+
+  // Meta
+  const meta = []
+  if (cena)             meta.push(`<span>💰 ${escHtml(cena)}</span>`)
+  if (inzerat.lokalita) meta.push(`<span>📍 ${escHtml(inzerat.lokalita)}</span>`)
+  document.getElementById('detail-meta').innerHTML = meta.join('')
+
+  // Popis
+  const popisEl = document.getElementById('detail-popis')
+  if (inzerat.popis && inzerat.popis !== '<br>' && inzerat.popis.trim()) {
+    popisEl.innerHTML = inzerat.popis
+    popisEl.style.display = 'block'
+  } else {
+    popisEl.style.display = 'none'
+  }
+
+  // Autor
+  const jmeno = inzerat.autor_jmeno || (inzerat.autor_email ? inzerat.autor_email.split('@')[0] : 'Tutor')
+  const initials = jmeno.charAt(0).toUpperCase()
+  document.getElementById('detail-autor').innerHTML = `
+    <div class="detail-autor-avatar">${initials}</div>
+    <div class="detail-autor-info">
+      <div class="detail-autor-jmeno">${escHtml(jmeno)}</div>
+      <div>Tutor</div>
+    </div>`
+
+  document.getElementById('modal-detail').classList.add('show')
+  document.body.style.overflow = 'hidden'
 }
 
-// ─── PŘIDÁNÍ INZERÁTU ───
+function zavritDetail(e) {
+  if (e && e.target !== document.getElementById('modal-detail')) return
+  closeModal('modal-detail')
+  document.body.style.overflow = ''
+}
+
+function projevitZajemZDetailu() {
+  closeModal('modal-detail')
+  document.body.style.overflow = ''
+  if (!currentUser) {
+    document.getElementById('modal-auth-guard').classList.add('show')
+    return
+  }
+  inzeratProZajem = detailInzeratId
+  document.getElementById('modal-zajem').classList.add('show')
+  document.getElementById('zajem-zprava-input').value = ''
+}
+
+// ─────────────────────────────────────
+//  PŘIDÁNÍ INZERÁTU
+// ─────────────────────────────────────
 async function pridatInzerat() {
-  const nazev   = document.getElementById('add-nazev')?.value.trim()
-  const predmet = document.getElementById('predmet-input')?.value.trim()
+  if (!currentUser) { document.getElementById('modal-auth-guard').classList.add('show'); return }
+
+  const nazev   = document.querySelector('#page-add input[placeholder="Název inzerátu"]')?.value.trim()
   const popis   = document.getElementById('rte')?.innerHTML
-  const lok     = document.getElementById('add-lokalita')?.value.trim()
+  const predmet = document.getElementById('predmet-input')?.value.trim()
+  const lok     = document.querySelector('#page-add input[placeholder="Lokalita (Praha, Online...)"]')?.value.trim()
   const koho    = document.getElementById('dd-kdo-label')?.textContent
   const cenaOd  = document.getElementById('price-min')?.value || null
   const cenaDo  = document.getElementById('price-max')?.value || null
@@ -227,115 +369,213 @@ async function pridatInzerat() {
   const imgInput = document.getElementById('img-input')
   if (imgInput?.files[0]) obrazekUrl = await uploadObrazek(imgInput.files[0])
 
-  let payload = {
-    nazev, popis, predmet,
-    lokalita: lok || null,
+  const { error } = await supabase.from('inzeraty').insert({
+    user_id: currentUser.id, nazev, popis, predmet,
+    lokalita:    lok || null,
     koho_hledam: koho !== 'Koho hledám' ? koho : null,
-    cena_od: cenaOd ? parseInt(cenaOd) : null,
-    cena_do: cenaDo ? parseInt(cenaDo) : null,
-    cena_dohodou: dohod, obrazek_url: obrazekUrl
-  }
+    cena_od:     cenaOd ? parseInt(cenaOd) : null,
+    cena_do:     cenaDo ? parseInt(cenaDo) : null,
+    cena_dohodou: dohod,
+    obrazek_url: obrazekUrl,
+    autor_jmeno: currentUser.user_metadata?.jmeno || null,
+    autor_email: currentUser.email
+  })
 
-  if (currentUser) {
-    // Přihlášený uživatel
-    payload.user_id = currentUser.id
-    payload.autor_jmeno = currentUser.user_metadata?.jmeno || null
-    payload.autor_email = currentUser.email
-  } else {
-    // Nepřihlášený — potřebuje iniciály + email
-    const initials = document.getElementById('add-initials')?.value.trim()
-    const emailAnon = document.getElementById('add-email-anon')?.value.trim()
-    if (!initials) { setLoading('btn-add', false); return showError('add-error', 'Zadej iniciály.') }
-    if (!emailAnon || !emailAnon.includes('@')) { setLoading('btn-add', false); return showError('add-error', 'Zadej platný email.') }
-    // Pro anonymní inzeráty potřebujeme speciální user_id — použij anon session nebo service role
-    // Jednoduše: vložíme bez user_id (musíš upravit RLS politiku pro anon insert)
-    payload.autor_jmeno = initials
-    payload.autor_email = emailAnon
-  }
-
-  const { error } = await supabase.from('inzeraty').insert(payload)
   setLoading('btn-add', false)
+
   if (error) return showError('add-error', 'Chyba: ' + error.message)
-  document.getElementById('modal-success')?.classList.add('show')
+  document.getElementById('modal-success').classList.add('show')
 }
 
 async function uploadObrazek(file) {
-  if (!currentUser) return null
-  const ext = file.name.split('.').pop()
-  const name = `${currentUser.id}-${Date.now()}.${ext}`
-  const { error } = await supabase.storage.from('obrazky').upload(name, file, { upsert: true })
-  if (error) { console.error(error); return null }
-  return supabase.storage.from('obrazky').getPublicUrl(name).data.publicUrl
+  const ext      = file.name.split('.').pop().toLowerCase()
+  const allowed  = ['jpg','jpeg','png','webp','gif']
+  if (!allowed.includes(ext)) { showToast('Podporované formáty: jpg, png, webp'); return null }
+
+  const name = `inzeraty/${currentUser.id}-${Date.now()}.${ext}`
+  const { error } = await supabase.storage.from('obrazky').upload(name, file, {
+    upsert: true,
+    contentType: file.type
+  })
+  if (error) { console.error('Upload error:', error.message); showToast('Chyba uploadu: ' + error.message); return null }
+  const { data } = supabase.storage.from('obrazky').getPublicUrl(name)
+  return data.publicUrl
 }
 
-// ─── ZÁJEM ───
-let inzeratProZajem = null
-
-function projevitZajem(inzeratId) {
-  inzeratProZajem = inzeratId
-  document.getElementById('modal-zajem')?.classList.add('show')
-  document.getElementById('zajem-zprava-input').value = ''
+// ─────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────
+function showError(id, msg) {
+  const el = document.getElementById(id)
+  if (!el) return
+  el.textContent = msg; el.style.display = 'block'
+  setTimeout(() => { el.style.display = 'none' }, 4000)
 }
 
-async function odeslatzajem() {
-  if (!inzeratProZajem) return
-  const zprava = document.getElementById('zajem-zprava-input')?.value.trim()
-
-  if (!currentUser) {
-    // Anonymní zájem — potřebuje email
-    const emailAnon = prompt('Zadej svůj email pro kontakt:')
-    if (!emailAnon || !emailAnon.includes('@')) return showToast('Zadej platný email.')
-    setLoading('btn-odeslat-zajem', true)
-    await supabase.from('zajem').insert({ inzerat_id: inzeratProZajem, od_user_id: currentUser?.id || null, zprava: zprava || null, od_email: emailAnon })
-    setLoading('btn-odeslat-zajem', false)
-  } else {
-    setLoading('btn-odeslat-zajem', true)
-    const { error } = await supabase.from('zajem').insert({
-      inzerat_id: inzeratProZajem, od_user_id: currentUser.id,
-      zprava: zprava || null, od_email: currentUser.email,
-      od_jmeno: currentUser.user_metadata?.jmeno || null
-    })
-    setLoading('btn-odeslat-zajem', false)
-    if (error) { showToast('Chyba: ' + error.message); return }
-  }
-  closeModal('modal-zajem')
-  showToast('Zájem byl odeslán! 🎉')
-  inzeratProZajem = null
+function showToast(msg) {
+  const t = document.createElement('div')
+  t.className = 'toast'; t.textContent = msg
+  document.body.appendChild(t)
+  setTimeout(() => t.classList.add('show'), 10)
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300) }, 3500)
 }
 
-// ─── PROFIL ───
+function setLoading(id, loading) {
+  const btn = document.getElementById(id)
+  if (!btn) return
+  btn.disabled = loading; btn.style.opacity = loading ? '0.7' : '1'
+  if (loading) btn.dataset.orig = btn.textContent
+  else btn.textContent = btn.dataset.orig || btn.textContent
+}
+
+function prekladChyby(msg) {
+  if (msg.includes('Invalid login'))       return 'Špatný email nebo heslo.'
+  if (msg.includes('Email not confirmed')) return 'Nejdřív potvrď email v emailu.'
+  if (msg.includes('already registered'))  return 'Tento email je již registrován.'
+  if (msg.includes('Password should be'))  return 'Heslo musí mít alespoň 6 znaků.'
+  if (msg.includes('rate limit'))          return 'Příliš mnoho pokusů, zkus to za chvíli.'
+  return msg
+}
+
+function escHtml(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+}
+
+function getPredmetEmoji(p = '') {
+  p = p.toLowerCase()
+  if (p.includes('mat'))  return '🧮'
+  if (p.includes('angl')) return '🇬🇧'
+  if (p.includes('fyz'))  return '⚗️'
+  if (p.includes('bio'))  return '🧬'
+  if (p.includes('češt')) return '📝'
+  if (p.includes('prog')) return '💻'
+  if (p.includes('děj'))  return '🗺️'
+  if (p.includes('chem')) return '🔬'
+  if (p.includes('hud'))  return '🎵'
+  if (p.includes('němč')) return '🇩🇪'
+  return '📚'
+}
+
+function getPredmetClass(p = '') {
+  p = p.toLowerCase()
+  if (p.includes('mat'))  return 'math'
+  if (p.includes('angl')) return 'english'
+  if (p.includes('fyz') || p.includes('chem')) return 'physics'
+  if (p.includes('češt')) return 'czech'
+  return 'math'
+}
+
+// ─────────────────────────────────────
+//  MENU / UI
+// ─────────────────────────────────────
+function openMenu()  { document.getElementById('slide-menu').classList.add('open'); document.getElementById('menu-overlay').classList.add('open') }
+function closeMenu() { document.getElementById('slide-menu').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open') }
+function togglePw(id, btn) { const i = document.getElementById(id); i.type = i.type === 'password' ? 'text' : 'password'; btn.textContent = i.type === 'text' ? '🙈' : '👁' }
+function previewImg(input) {
+  if (!input.files?.[0]) return
+  const r = new FileReader()
+  r.onload = e => { document.getElementById('upload-preview').src = e.target.result; document.getElementById('upload-preview').style.display = 'block'; document.getElementById('upload-placeholder').style.display = 'none' }
+  r.readAsDataURL(input.files[0])
+}
+function fmt(cmd) { document.execCommand(cmd, false, null); document.getElementById('rte').focus() }
+function fmtBlock(tag) { if (tag) document.execCommand('formatBlock', false, tag); document.getElementById('rte').focus() }
+function togglePriceDohodou(cb) {
+  ;['price-min','price-max'].forEach(id => { const el = document.getElementById(id); el.disabled = cb.checked; el.style.opacity = cb.checked ? '0.4' : '1' })
+}
+function openPredmet()  { document.getElementById('predmet-panel').classList.add('open'); document.getElementById('predmet-chevron').style.transform = 'rotate(180deg)' }
+function closePredmet() { document.getElementById('predmet-panel').classList.remove('open'); document.getElementById('predmet-chevron').style.transform = 'rotate(0deg)' }
+function filterPredmet(val) {
+  openPredmet()
+  const q = val.toLowerCase().trim()
+  document.querySelectorAll('.predmet-item').forEach(i => i.classList.toggle('hidden', !i.dataset.val.toLowerCase().includes(q)))
+  const exact = [...document.querySelectorAll('.predmet-item')].some(i => i.dataset.val.toLowerCase().replace(/^.\s/,'') === q)
+  const cr = document.getElementById('predmet-custom-row')
+  if (val.length > 0 && !exact) { document.getElementById('predmet-custom-text').textContent = val; cr.style.display = 'flex' }
+  else cr.style.display = 'none'
+}
+function selectPredmet(el) {
+  document.querySelectorAll('.predmet-item').forEach(i => i.classList.remove('selected'))
+  el.classList.add('selected'); document.getElementById('predmet-input').value = el.dataset.val
+  document.getElementById('predmet-custom-row').style.display = 'none'; closePredmet()
+}
+function useCustomPredmet() { closePredmet(); document.getElementById('predmet-custom-row').style.display = 'none'; document.querySelectorAll('.predmet-item').forEach(i => i.classList.remove('selected')) }
+document.addEventListener('click', e => { if (!e.target.closest('#predmet-wrap')) closePredmet() })
+function toggleDropdown(id) { const dd = document.getElementById(id); const open = dd.classList.contains('open'); document.querySelectorAll('.dropdown-list').forEach(d => d.classList.remove('open')); if (!open) dd.classList.add('open') }
+function selectDd(id, val) { document.getElementById(id+'-label').textContent = val; document.getElementById(id+'-label').style.color = 'var(--dark)'; document.getElementById(id).classList.remove('open') }
+document.addEventListener('click', e => { if (!e.target.closest('.select-wrap') && !e.target.closest('.dropdown-list')) document.querySelectorAll('.dropdown-list').forEach(d => d.classList.remove('open')) })
+
+// ─────────────────────────────────────
+//  GLOBAL EXPORT
+// ─────────────────────────────────────
+Object.assign(window, {
+  showPage, closeModal, doLogin, doRegister, doLogout,
+  openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
+  togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
+  useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
+  setKategorie, filterInzeraty, otevritDetail, zavritDetail, projevitZajemZDetailu
+})
+
+// ─────────────────────────────────────
+//  PROFIL
+// ─────────────────────────────────────
 async function nactiProfil() {
   if (!currentUser) return
+
   const jmeno = currentUser.user_metadata?.jmeno || ''
   const prijmeni = currentUser.user_metadata?.prijmeni || ''
   const displayJmeno = [jmeno, prijmeni].filter(Boolean).join(' ') || currentUser.email.split('@')[0]
-  document.getElementById('profil-avatar').textContent = displayJmeno.charAt(0).toUpperCase()
-  document.getElementById('profil-jmeno').textContent  = displayJmeno
-  document.getElementById('profil-email').textContent  = currentUser.email
+
+  const avatarEl = document.getElementById('profil-avatar')
+  const jmenoEl  = document.getElementById('profil-jmeno')
+  const emailEl  = document.getElementById('profil-email')
+
+  if (avatarEl) avatarEl.textContent = displayJmeno.charAt(0).toUpperCase()
+  if (jmenoEl)  jmenoEl.textContent  = displayJmeno
+  if (emailEl)  emailEl.textContent  = currentUser.email
+
   nactiMojeInzeraty()
 }
 
 async function nactiMojeInzeraty() {
   const list = document.getElementById('moje-inzeraty-list')
   if (!list || !currentUser) return
+
   list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">⏳</div><p>Načítám...</p></div>'
-  const { data, error } = await supabase.from('inzeraty').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
-  if (error || !data) { list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">😕</div><h3>Chyba</h3></div>'; return }
-  if (!data.length) {
-    list.innerHTML = `<div class="profil-empty"><div class="profil-empty-icon">📋</div><h3>Zatím žádné inzeráty</h3><p>Přidej svůj první inzerát.</p><button class="submit-btn" style="max-width:220px;margin:16px auto 0" onclick="showPage('page-add')">+ Přidat inzerát</button></div>`
+
+  const { data, error } = await supabase
+    .from('inzeraty')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false })
+
+  if (error || !data) {
+    list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">😕</div><h3>Chyba při načítání</h3></div>'
     return
   }
-  list.innerHTML = data.map(renderProfilInzerat).join('')
+
+  if (data.length === 0) {
+    list.innerHTML = `
+      <div class="profil-empty">
+        <div class="profil-empty-icon">📋</div>
+        <h3>Zatím žádné inzeráty</h3>
+        <p>Přidej svůj první inzerát a oslovuj studenty.</p>
+        <button class="submit-btn" style="max-width:220px;margin:16px auto 0" onclick="showPage('page-add')">+ Přidat inzerát</button>
+      </div>`
+    return
+  }
+
+  list.innerHTML = data.map(i => renderProfilInzerat(i)).join('')
 }
 
 function renderProfilInzerat(i) {
   const emoji = getPredmetEmoji(i.predmet)
-  const cena  = i.cena_dohodou ? 'Dohodou' : i.cena_od ? `${i.cena_od}${i.cena_do ? ' – ' + i.cena_do : ''} Kč/hod` : '—'
+  const cena  = i.cena_dohodou ? 'Dohodou'
+    : i.cena_od ? `${i.cena_od}${i.cena_do ? ' – ' + i.cena_do : ''} Kč/hod` : '—'
   const datum = new Date(i.created_at).toLocaleDateString('cs-CZ', { day:'numeric', month:'short', year:'numeric' })
-  const imgEl = i.obrazek_url ? `<img src="${escHtml(i.obrazek_url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:12px">` : emoji
+
   return `
     <div class="profil-inzerat-card" id="inzerat-card-${i.id}">
-      <div class="profil-inzerat-emoji">${imgEl}</div>
+      <div class="profil-inzerat-emoji">${emoji}</div>
       <div class="profil-inzerat-body">
         <div class="profil-inzerat-nazev">${escHtml(i.nazev)}</div>
         <div class="profil-inzerat-meta">
@@ -354,26 +594,66 @@ function renderProfilInzerat(i) {
 async function nactiPrijatyZajem() {
   const list = document.getElementById('zajem-list')
   if (!list || !currentUser) return
+
   list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">⏳</div><p>Načítám...</p></div>'
-  const { data, error } = await supabase
-    .from('zajem').select('*, inzeraty!inner(nazev, predmet, user_id)')
-    .eq('inzeraty.user_id', currentUser.id)
-    .order('created_at', { ascending: false })
-  if (error) { list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">😕</div><h3>Chyba</h3></div>'; return }
-  if (!data?.length) {
-    list.innerHTML = `<div class="profil-empty"><div class="profil-empty-icon">💬</div><h3>Zatím žádný zájem</h3><p>Zde uvidíš zprávy od zájemců o tvé inzeráty.</p></div>`
+
+  // Načti moje inzeráty nejdřív, pak zájem o ně
+  const { data: mojeInzeraty } = await supabase
+    .from('inzeraty')
+    .select('id')
+    .eq('user_id', currentUser.id)
+
+  if (!mojeInzeraty || mojeInzeraty.length === 0) {
+    list.innerHTML = `
+      <div class="profil-empty">
+        <div class="profil-empty-icon">💬</div>
+        <h3>Zatím žádný zájem</h3>
+        <p>Zde uvidíš zprávy od studentů, kteří se zajímají o tvé inzeráty.</p>
+      </div>`
     return
   }
-  list.innerHTML = data.map(z => {
-    const datum = new Date(z.created_at).toLocaleDateString('cs-CZ', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
-    return `<div class="zajem-card">
-      <div class="zajem-inzerat-nazev">📋 ${escHtml(z.inzeraty?.nazev || 'Inzerát')}</div>
-      <div class="zajem-od">👤 ${escHtml(z.od_jmeno || z.od_email || 'Anonymní')}</div>
-      ${z.od_email ? `<div style="font-size:12px;color:var(--muted)">${escHtml(z.od_email)}</div>` : ''}
+
+  const ids = mojeInzeraty.map(i => i.id)
+
+  const { data, error } = await supabase
+    .from('zajem')
+    .select('*')
+    .in('inzerat_id', ids)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">😕</div><h3>Chyba při načítání</h3></div>'
+    return
+  }
+
+  if (!data || data.length === 0) {
+    list.innerHTML = `
+      <div class="profil-empty">
+        <div class="profil-empty-icon">💬</div>
+        <h3>Zatím žádný zájem</h3>
+        <p>Zde uvidíš zprávy od studentů, kteří se zajímají o tvé inzeráty.</p>
+      </div>`
+    return
+  }
+
+  list.innerHTML = data.map(z => renderZajemKarta(z)).join('')
+}
+
+function renderZajemKarta(z) {
+  const datum = new Date(z.created_at).toLocaleDateString('cs-CZ', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+  const jmeno = z.od_jmeno || z.od_email || 'Anonymní'
+
+  return `
+    <div class="zajem-card">
+      <div class="zajem-card-header">
+        <div>
+          <div class="zajem-od">👤 ${escHtml(jmeno)}</div>
+          ${z.od_email ? `<div style="font-size:12px;color:var(--muted)">${escHtml(z.od_email)}</div>` : ''}
+        </div>
+      </div>
       ${z.zprava ? `<div class="zajem-zprava">"${escHtml(z.zprava)}"</div>` : ''}
       <div class="zajem-datum">📅 ${datum}</div>
     </div>`
-  }).join('')
 }
 
 function switchProfilTab(tab) {
@@ -381,71 +661,63 @@ function switchProfilTab(tab) {
   document.getElementById('ptab-' + tab).classList.add('active')
   document.getElementById('ptab-content-moje').style.display  = tab === 'moje'  ? 'block' : 'none'
   document.getElementById('ptab-content-zajem').style.display = tab === 'zajem' ? 'block' : 'none'
-  if (tab === 'zajem') nactiPrijatyZajem(); else nactiMojeInzeraty()
+  if (tab === 'zajem') nactiPrijatyZajem()
+  else nactiMojeInzeraty()
 }
 
-// ─── MAZÁNÍ ───
+let inzeratKeSmazani = null
+
 function potvrditSmazani(id) {
-  document.getElementById('modal-smazat')?.classList.add('show')
+  inzeratKeSmazani = id
+  document.getElementById('modal-smazat').classList.add('show')
   document.getElementById('btn-confirm-smazat').onclick = () => smazatInzerat(id)
 }
+
 async function smazatInzerat(id) {
   closeModal('modal-smazat')
   const { error } = await supabase.from('inzeraty').delete().eq('id', id)
+  if (error) { showToast('Chyba při mazání: ' + error.message); return }
+  const card = document.getElementById('inzerat-card-' + id)
+  if (card) card.style.display = 'none'
+  showToast('Inzerát byl smazán 🗑')
+  nactiMojeInzeraty()
+}
+
+let inzeratProZajem = null
+
+function projevitZajem(inzeratId) {
+  if (!currentUser) {
+    document.getElementById('modal-auth-guard').classList.add('show')
+    return
+  }
+  inzeratProZajem = inzeratId
+  document.getElementById('modal-zajem').classList.add('show')
+  document.getElementById('zajem-zprava-input').value = ''
+}
+
+async function odeslatzajem() {
+  if (!currentUser || !inzeratProZajem) return
+  const zprava = document.getElementById('zajem-zprava-input')?.value.trim()
+
+  setLoading('btn-odeslat-zajem', true)
+
+  const { error } = await supabase.from('zajem').insert({
+    inzerat_id: inzeratProZajem,
+    od_user_id: currentUser.id,
+    zprava: zprava || null,
+    od_email: currentUser.email,
+    od_jmeno: currentUser.user_metadata?.jmeno || null
+  })
+
+  setLoading('btn-odeslat-zajem', false)
+
   if (error) { showToast('Chyba: ' + error.message); return }
-  showToast('Inzerát smazán 🗑'); nactiMojeInzeraty()
+  closeModal('modal-zajem')
+  showToast('Zájem byl odeslán! 🎉')
+  inzeratProZajem = null
 }
 
-// ─── HELPERS ───
-function showError(id, msg) { const el = document.getElementById(id); if (!el) return; el.textContent = msg; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 4000) }
-function showToast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.classList.add('show'), 10); setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300) }, 3500) }
-function setLoading(id, v) { const b = document.getElementById(id); if (!b) return; b.disabled = v; b.style.opacity = v ? '0.7' : '1'; if (v) b.dataset.orig = b.textContent; else b.textContent = b.dataset.orig || b.textContent }
-function prekladChyby(msg) {
-  if (msg.includes('Invalid login'))       return 'Špatný email nebo heslo.'
-  if (msg.includes('Email not confirmed')) return 'Nejdřív potvrď email.'
-  if (msg.includes('already registered'))  return 'Tento email je již registrován.'
-  if (msg.includes('Password should be'))  return 'Heslo musí mít alespoň 6 znaků.'
-  return msg
-}
-function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
-function getPredmetEmoji(p='') { p=p.toLowerCase(); if(p.includes('mat'))return'🧮'; if(p.includes('angl'))return'🇬🇧'; if(p.includes('fyz'))return'⚗️'; if(p.includes('bio'))return'🧬'; if(p.includes('češt'))return'📝'; if(p.includes('prog'))return'💻'; if(p.includes('děj'))return'🗺️'; if(p.includes('chem'))return'🔬'; if(p.includes('hud'))return'🎵'; if(p.includes('němč'))return'🇩🇪'; return'📚' }
-function getPredmetClass(p='') { p=p.toLowerCase(); if(p.includes('mat'))return'math'; if(p.includes('angl'))return'english'; if(p.includes('fyz')||p.includes('chem'))return'physics'; if(p.includes('češt'))return'czech'; return'math' }
-
-// ─── MENU / UI ───
-function openMenu()  { document.getElementById('slide-menu').classList.add('open');  document.getElementById('menu-overlay').classList.add('open')  }
-function closeMenu() { document.getElementById('slide-menu').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open') }
-function togglePw(id, btn) { const i=document.getElementById(id); i.type=i.type==='password'?'text':'password'; btn.textContent=i.type==='text'?'🙈':'👁' }
-function previewImg(input) {
-  if (!input.files?.[0]) return
-  const r = new FileReader()
-  r.onload = e => { document.getElementById('upload-preview').src=e.target.result; document.getElementById('upload-preview').style.display='block'; document.getElementById('upload-placeholder').style.display='none' }
-  r.readAsDataURL(input.files[0])
-}
-function fmt(cmd) { document.execCommand(cmd,false,null); document.getElementById('rte').focus() }
-function fmtBlock(tag) { if(tag) document.execCommand('formatBlock',false,tag); document.getElementById('rte').focus() }
-function togglePriceDohodou(cb) { ['price-min','price-max'].forEach(id=>{const el=document.getElementById(id);el.disabled=cb.checked;el.style.opacity=cb.checked?'0.4':'1'}) }
-function openPredmet()  { document.getElementById('predmet-panel').classList.add('open');    document.getElementById('predmet-chevron').style.transform='rotate(180deg)' }
-function closePredmet() { document.getElementById('predmet-panel').classList.remove('open'); document.getElementById('predmet-chevron').style.transform='rotate(0deg)'   }
-function filterPredmet(val) {
-  openPredmet(); const q=val.toLowerCase().trim()
-  document.querySelectorAll('.predmet-item').forEach(i=>i.classList.toggle('hidden',!i.dataset.val.toLowerCase().includes(q)))
-  const exact=[...document.querySelectorAll('.predmet-item')].some(i=>i.dataset.val.toLowerCase().replace(/^.\s/,'')===q)
-  const cr=document.getElementById('predmet-custom-row')
-  if(val.length>0&&!exact){document.getElementById('predmet-custom-text').textContent=val;cr.style.display='flex'}else cr.style.display='none'
-}
-function selectPredmet(el) { document.querySelectorAll('.predmet-item').forEach(i=>i.classList.remove('selected')); el.classList.add('selected'); document.getElementById('predmet-input').value=el.dataset.val; document.getElementById('predmet-custom-row').style.display='none'; closePredmet() }
-function useCustomPredmet() { closePredmet(); document.getElementById('predmet-custom-row').style.display='none'; document.querySelectorAll('.predmet-item').forEach(i=>i.classList.remove('selected')) }
-document.addEventListener('click',e=>{if(!e.target.closest('#predmet-wrap'))closePredmet()})
-function toggleDropdown(id){const dd=document.getElementById(id);const o=dd.classList.contains('open');document.querySelectorAll('.dropdown-list').forEach(d=>d.classList.remove('open'));if(!o)dd.classList.add('open')}
-function selectDd(id,val){document.getElementById(id+'-label').textContent=val;document.getElementById(id+'-label').style.color='var(--dark)';document.getElementById(id).classList.remove('open')}
-document.addEventListener('click',e=>{if(!e.target.closest('.select-wrap')&&!e.target.closest('.dropdown-list'))document.querySelectorAll('.dropdown-list').forEach(d=>d.classList.remove('open'))})
-
-// ─── EXPORTS ───
 Object.assign(window, {
-  showPage, closeModal, doLogin, doRegister, doLogout,
-  openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
-  togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
-  useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
-  projevitZajem, odeslatzajem, nactiProfil, switchProfilTab,
-  potvrditSmazani, smazatInzerat, zobrazDetail
+  nactiProfil, switchProfilTab, potvrditSmazani, smazatInzerat,
+  projevitZajem, odeslatzajem
 })
