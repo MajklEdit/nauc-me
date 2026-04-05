@@ -429,10 +429,21 @@
 
 <!-- ══════ EDIT INZERÁT MODAL ══════ -->
 <div class="overlay" id="modal-edit">
-  <div class="modal-card" style="max-width:500px;width:92%;padding:28px 24px">
+  <div class="modal-card" style="max-width:500px;width:92%;padding:28px 24px;max-height:90vh;overflow-y:auto">
     <button class="modal-close-btn" onclick="closeModal('modal-edit')">✕</button>
     <div class="modal-emoji">✏️</div>
     <div class="modal-title">Upravit inzerát</div>
+
+    <!-- Foto upload -->
+    <div class="upload-box" id="edit-upload-box" onclick="document.getElementById('edit-img-input').click()" style="margin-bottom:12px;height:90px">
+      <input type="file" id="edit-img-input" accept="image/*" style="display:none" onchange="editPreviewImg(this)">
+      <img id="edit-upload-preview" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px">
+      <div id="edit-upload-placeholder" style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Změnit fotku inzerátu
+      </div>
+    </div>
+
     <input class="modal-edit-input auth-input" id="edit-nazev" type="text" placeholder="Název inzerátu" style="margin-bottom:10px">
     <input class="modal-edit-input auth-input" id="edit-predmet" type="text" placeholder="Předmět" style="margin-bottom:10px">
     <input class="modal-edit-input auth-input" id="edit-lokalita" type="text" placeholder="Lokalita (Praha, Online...)" style="margin-bottom:10px">
