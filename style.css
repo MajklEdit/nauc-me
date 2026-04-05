@@ -789,7 +789,7 @@ body.dark .detail-input:focus, body.dark .detail-textarea:focus { border-color: 
 body.dark .modal-card { background: #1e293b; }
 body.dark .modal-title { color: #f1f5f9; }
 body.dark .modal-desc { color: #94a3b8; }
-body.dark .profil-header { background: #1e293b; }
+body.dark .profil-header { background: transparent; }
 body.dark .profil-jmeno { color: #f1f5f9; }
 body.dark .profil-email { color: #94a3b8; }
 body.dark .celebration-inner { background: #1e293b; }
