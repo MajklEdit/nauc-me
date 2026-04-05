@@ -45,22 +45,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ─────────────────────────────────────
 function showPage(id) {
   if (id === 'page-add' && !currentUser) {
-    document.getElementById('modal-auth-guard').classList.add('show')
+    const m = document.getElementById('modal-auth-guard')
+    if (m) m.classList.add('show')
     return
   }
   if (id === 'page-profil' && !currentUser) {
-    document.getElementById('modal-auth-guard').classList.add('show')
+    const m = document.getElementById('modal-auth-guard')
+    if (m) m.classList.add('show')
     return
   }
+  const target = document.getElementById(id)
+  if (!target) return
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
-  document.getElementById(id).classList.add('active')
+  target.classList.add('active')
   window.scrollTo(0, 0)
   if (id === 'page-browse') nactiInzeraty()
   if (id === 'page-profil') nactiProfil()
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove('show')
+  const el = document.getElementById(id)
+  if (el) el.classList.remove('show')
   if (id === 'modal-detail') document.body.style.overflow = ''
 }
 
@@ -151,6 +156,9 @@ async function nactiInzeraty() {
   if (error) { grid.innerHTML = '<div class="loading-msg">Chyba při načítání 😕</div>'; console.error(error); return }
 
   vsechnyInzeraty = data || []
+  // Aktualizuj počítadlo
+  const countEl = document.getElementById('stats-count')
+  if (countEl) countEl.textContent = vsechnyInzeraty.length
   zobrazFiltrované()
 }
 
