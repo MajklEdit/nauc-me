@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   })
 
   nactiInzeraty() // načte inzeráty pro browse i home page
+  const si = document.getElementById('search-input'); if (si) si.value = ''
 
   document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', function () {
@@ -346,6 +347,30 @@ function otevritDetail(id) {
       <div>Tutor</div>
     </div>`
 
+  // Autofill pokud přihlášen
+  const jmenoInput = document.getElementById('detail-zajem-jmeno')
+  const emailInput = document.getElementById('detail-zajem-email')
+  const errorEl    = document.getElementById('detail-zajem-error')
+  const successEl  = document.getElementById('detail-zajem-success')
+  if (jmenoInput) {
+    jmenoInput.value = currentUser ? (currentUser.user_metadata?.jmeno || '') : ''
+    jmenoInput.readOnly = !!currentUser
+    jmenoInput.style.background = currentUser ? '#F3F4F6' : ''
+  }
+  if (emailInput) {
+    emailInput.value = currentUser ? currentUser.email : ''
+    emailInput.readOnly = !!currentUser
+    emailInput.style.background = currentUser ? '#F3F4F6' : ''
+  }
+  if (errorEl) errorEl.style.display = 'none'
+  const textarea = document.getElementById('detail-zajem-zprava')
+  if (textarea) textarea.value = ''
+  // Odstraň případný success
+  const oldSuccess = document.getElementById('detail-zajem-success')
+  if (oldSuccess) oldSuccess.remove()
+  const btn = document.getElementById('btn-detail-odeslat')
+  if (btn) { btn.disabled = false; btn.textContent = 'Odeslat zájem' }
+
   document.getElementById('modal-detail').classList.add('show')
   document.body.style.overflow = 'hidden'
 }
@@ -356,16 +381,53 @@ function zavritDetail(e) {
   document.body.style.overflow = ''
 }
 
-function projevitZajemZDetailu() {
-  closeModal('modal-detail')
-  document.body.style.overflow = ''
-  if (!currentUser) {
-    document.getElementById('modal-auth-guard').classList.add('show')
+async function odeslatZajemZDetailu() {
+  const jmeno  = document.getElementById('detail-zajem-jmeno')?.value.trim()
+  const email  = document.getElementById('detail-zajem-email')?.value.trim()
+  const zprava = document.getElementById('detail-zajem-zprava')?.value.trim()
+  const errorEl = document.getElementById('detail-zajem-error')
+
+  if (!jmeno || !email) {
+    if (errorEl) { errorEl.textContent = 'Vyplň jméno a email.'; errorEl.style.display = 'block' }
     return
   }
-  inzeratProZajem = detailInzeratId
-  document.getElementById('modal-zajem').classList.add('show')
-  document.getElementById('zajem-zprava-input').value = ''
+  if (!email.includes('@')) {
+    if (errorEl) { errorEl.textContent = 'Zadej platný email.'; errorEl.style.display = 'block' }
+    return
+  }
+  if (errorEl) errorEl.style.display = 'none'
+
+  const btn = document.getElementById('btn-detail-odeslat')
+  if (btn) { btn.disabled = true; btn.textContent = 'Odesílám...' }
+
+  const { error } = await supabase.from('zajem').insert({
+    inzerat_id: detailInzeratId,
+    od_user_id: currentUser?.id || null,
+    zprava:     zprava || null,
+    od_email:   email,
+    od_jmeno:   jmeno
+  })
+
+  if (error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Odeslat zájem' }
+    if (errorEl) { errorEl.textContent = 'Chyba: ' + error.message; errorEl.style.display = 'block' }
+    return
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = '✅ Zájem odeslán!' }
+  const section = document.querySelector('.detail-zajem-section')
+  if (section) {
+    const s = document.createElement('div')
+    s.id = 'detail-zajem-success'
+    s.className = 'detail-success'
+    s.textContent = 'Tvůj zájem byl odeslán! Tutor tě brzy kontaktuje.'
+    section.appendChild(s)
+  }
+}
+
+function projevitZajemZDetailu() {
+  // Zachováno pro zpětnou kompatibilitu
+  odeslatZajemZDetailu()
 }
 
 // ─────────────────────────────────────
@@ -535,7 +597,7 @@ Object.assign(window, {
   openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
   togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
   useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
-  setKategorie, filterInzeraty, otevritDetail, zavritDetail, projevitZajemZDetailu
+  setKategorie, filterInzeraty, otevritDetail, zavritDetail, projevitZajemZDetailu, odeslatZajemZDetailu
 })
 
 // ─────────────────────────────────────
