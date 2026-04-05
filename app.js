@@ -26,8 +26,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (session) { currentUser = session.user; onLogin(currentUser) }
 
   supabase.auth.onAuthStateChange((_event, session) => {
-    if (session) { currentUser = session.user; onLogin(currentUser) }
-    else         { currentUser = null; onLogout() }
+    if (session) {
+      currentUser = session.user
+      // Po potvrzení emailu nebo přihlášení
+      if (_event === 'SIGNED_IN') {
+        onLogin(currentUser)
+      } else if (_event === 'USER_UPDATED' || _event === 'TOKEN_REFRESHED') {
+        // Tichá aktualizace session — jen aktualizuj UI bez oslavy
+        const navLo = document.getElementById('nav-lo')
+        const navLi = document.getElementById('nav-li')
+        const smOut = document.getElementById('sm-logged-out')
+        const smIn  = document.getElementById('sm-logged-in')
+        if (navLo) navLo.style.display = 'none'
+        if (navLi) navLi.style.display = 'inline-flex'
+        if (smOut) smOut.style.display = 'none'
+        if (smIn)  smIn.style.display  = 'block'
+        const jmeno = currentUser.user_metadata?.jmeno || currentUser.email.split('@')[0]
+        const el = document.getElementById('nav-user-name')
+        if (el) el.textContent = jmeno
+      }
+    } else {
+      currentUser = null; onLogout()
+    }
   })
 
   initDarkMode()
@@ -61,6 +81,9 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   target.classList.add('active')
   window.scrollTo(0, 0)
+  // Vždy vyčisti search input
+  const si = document.getElementById('search-input')
+  if (si) si.value = ''
   if (id === 'page-browse') nactiInzeraty()
   if (id === 'page-profil') nactiProfil()
 }
@@ -89,7 +112,10 @@ async function doRegister() {
   setLoading('btn-register', true)
   const { error } = await supabase.auth.signUp({
     email, password: heslo,
-    options: { data: { jmeno, prijmeni, telefon } }
+    options: {
+      data: { jmeno, prijmeni, telefon },
+      emailRedirectTo: window.location.origin + window.location.pathname
+    }
   })
   setLoading('btn-register', false)
 
@@ -630,8 +656,14 @@ document.addEventListener('click', e => { if (!e.target.closest('.select-wrap') 
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle('dark')
   localStorage.setItem('darkMode', isDark ? '1' : '0')
+  const emoji = isDark ? '☀️' : '🌙'
+  const label = isDark ? 'Denní režim' : 'Noční režim'
   const btn = document.getElementById('dark-mode-btn')
-  if (btn) btn.textContent = isDark ? '☀️' : '🌙'
+  if (btn) btn.textContent = emoji
+  const btnMobile = document.getElementById('dark-mode-btn-mobile')
+  if (btnMobile) btnMobile.textContent = emoji
+  const labelMobile = document.getElementById('dark-mode-label-mobile')
+  if (labelMobile) labelMobile.textContent = label
 }
 
 function initDarkMode() {
@@ -640,8 +672,13 @@ function initDarkMode() {
   const isDark = saved !== null ? saved === '1' : prefersDark
   if (isDark) {
     document.body.classList.add('dark')
+    const emoji = '☀️'
     const btn = document.getElementById('dark-mode-btn')
-    if (btn) btn.textContent = '☀️'
+    if (btn) btn.textContent = emoji
+    const btnMobile = document.getElementById('dark-mode-btn-mobile')
+    if (btnMobile) btnMobile.textContent = emoji
+    const labelMobile = document.getElementById('dark-mode-label-mobile')
+    if (labelMobile) labelMobile.textContent = 'Denní režim'
   }
 }
 
