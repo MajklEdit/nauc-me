@@ -762,6 +762,7 @@ function renderProfilInzerat(i) {
         <div style="font-size:11px;color:var(--muted);margin-top:6px">Přidáno ${datum}</div>
       </div>
       <div class="profil-inzerat-actions">
+        <button class="profil-btn edit" onclick="otevritEditModal('${i.id}')">✏️ Upravit</button>
         <button class="profil-btn delete" onclick="potvrditSmazani('${i.id}')">🗑 Smazat</button>
       </div>
     </div>`
@@ -893,7 +894,83 @@ async function odeslatzajem() {
   inzeratProZajem = null
 }
 
+let inzeratProEdit = null
+
+function otevritEditModal(id) {
+  const inzerat = vsechnyInzeraty.find(i => i.id === id)
+    || { id, nazev:'', predmet:'', lokalita:'', cena_od:null, cena_do:null, cena_dohodou:false }
+  inzeratProEdit = id
+
+  // Pokus načíst čerstvá data z Supabase (async, bez blokování)
+  supabase.from('inzeraty').select('*').eq('id', id).single().then(({ data }) => {
+    if (data) {
+      document.getElementById('edit-nazev').value    = data.nazev || ''
+      document.getElementById('edit-predmet').value  = data.predmet || ''
+      document.getElementById('edit-lokalita').value = data.lokalita || ''
+      document.getElementById('edit-cena-od').value  = data.cena_od || ''
+      document.getElementById('edit-cena-do').value  = data.cena_do || ''
+      const cb = document.getElementById('edit-dohodou')
+      cb.checked = !!data.cena_dohodou
+      toggleEditDohodou(cb)
+    }
+  })
+
+  // Předvyplň z cache
+  document.getElementById('edit-nazev').value    = inzerat.nazev || ''
+  document.getElementById('edit-predmet').value  = inzerat.predmet || ''
+  document.getElementById('edit-lokalita').value = inzerat.lokalita || ''
+  document.getElementById('edit-cena-od').value  = inzerat.cena_od || ''
+  document.getElementById('edit-cena-do').value  = inzerat.cena_do || ''
+  const cb = document.getElementById('edit-dohodou')
+  cb.checked = !!inzerat.cena_dohodou
+  toggleEditDohodou(cb)
+
+  const errEl = document.getElementById('edit-error')
+  if (errEl) errEl.style.display = 'none'
+  document.getElementById('modal-edit').classList.add('show')
+}
+
+function toggleEditDohodou(cb) {
+  ;['edit-cena-od','edit-cena-do'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el) { el.disabled = cb.checked; el.style.opacity = cb.checked ? '0.4' : '1' }
+  })
+}
+
+async function ulozitUpravuInzeratu() {
+  if (!inzeratProEdit) return
+  const nazev    = document.getElementById('edit-nazev').value.trim()
+  const predmet  = document.getElementById('edit-predmet').value.trim()
+  const lokalita = document.getElementById('edit-lokalita').value.trim()
+  const cenaOd   = document.getElementById('edit-cena-od').value || null
+  const cenaDo   = document.getElementById('edit-cena-do').value || null
+  const dohodou  = document.getElementById('edit-dohodou').checked
+
+  if (!nazev)   return showError('edit-error', 'Zadej název inzerátu.')
+  if (!predmet) return showError('edit-error', 'Zadej předmět.')
+
+  setLoading('btn-edit-save', true)
+
+  const { error } = await supabase.from('inzeraty').update({
+    nazev, predmet,
+    lokalita:    lokalita || null,
+    cena_od:     cenaOd ? parseInt(cenaOd) : null,
+    cena_do:     cenaDo ? parseInt(cenaDo) : null,
+    cena_dohodou: dohodou
+  }).eq('id', inzeratProEdit)
+
+  setLoading('btn-edit-save', false)
+
+  if (error) return showError('edit-error', 'Chyba: ' + error.message)
+  closeModal('modal-edit')
+  showToast('Inzerát byl upraven ✅')
+  inzeratProEdit = null
+  nactiMojeInzeraty()
+  nactiInzeraty() // refresh cache
+}
+
 Object.assign(window, {
   nactiProfil, switchProfilTab, potvrditSmazani, smazatInzerat,
-  projevitZajem, odeslatzajem
+  projevitZajem, odeslatzajem,
+  otevritEditModal, toggleEditDohodou, ulozitUpravuInzeratu
 })
