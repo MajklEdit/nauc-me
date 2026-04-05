@@ -63,18 +63,24 @@
       Odhlásit se
     </div>
   </div>
+  <!-- Dark mode tlačítko dole v menu -->
+  <div class="slide-menu-darkmode" onclick="toggleDarkMode()">
+    <button class="dark-mode-btn" id="dark-mode-btn-mobile">🌙</button>
+    <span id="dark-mode-label-mobile">Noční režim</span>
+  </div>
 </div>
 
 <!-- ══════ NAVBAR ══════ -->
 <nav class="navbar">
   <div class="navbar-inner">
     <div class="nav-logo" onclick="showPage('page-home')">nauc<span>.</span>me</div>
-    <button class="dark-mode-btn" id="dark-mode-btn" onclick="toggleDarkMode()" title="Přepnout režim">🌙</button>
     <div class="nav-search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input type="text" id="search-input" placeholder="🔍 Hledat tutora, předmět..." oninput="filterInzeraty()" autocomplete="off">
     </div>
     <div class="nav-actions">
+      <!-- Dark mode jen na desktopu v navbaru -->
+      <button class="dark-mode-btn" id="dark-mode-btn" onclick="toggleDarkMode()" title="Přepnout režim">🌙</button>
       <span id="nav-lo">
         <button class="nav-btn ghost" onclick="showPage('page-login')">Přihlásit se</button>
         <button class="nav-btn solid" onclick="showPage('page-register')">Vytvořit účet</button>
@@ -365,6 +371,7 @@
 
 <div class="overlay" id="modal-auth-guard">
   <div class="modal-card">
+    <button class="modal-close-btn" onclick="closeModal('modal-auth-guard')">✕</button>
     <div class="modal-emoji">🔒</div>
     <div class="modal-title">Nejsi přihlášen/a</div>
     <p class="modal-desc">Pro přidání inzerátu se musíš nejdříve přihlásit nebo vytvořit účet.</p>
