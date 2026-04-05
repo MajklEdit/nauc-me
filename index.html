@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nauc.me</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Toast notifikace */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: #111827; color: white; padding: 12px 22px; border-radius: 12px;
+      font-size: 14px; font-weight: 500; z-index: 999; opacity: 0;
+      transition: all 0.3s; pointer-events: none; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Error messages */
+    .form-error {
+      display: none; background: #FEF2F2; color: #DC2626;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; margin-bottom: 10px;
+    }
+
+    /* Loading message */
+    .loading-msg {
+      grid-column: 1/-1; text-align: center;
+      padding: 48px 20px; color: var(--muted); font-size: 15px;
+    }
+
+    /* Cards grid id */
+    #cards-grid { display: contents; }
+  </style>
+</head>
+<body>
+
+<!-- ══════ MOBILE SLIDE MENU ══════ -->
+<div class="menu-overlay" id="menu-overlay" onclick="closeMenu()"></div>
+<div class="slide-menu" id="slide-menu">
+  <div class="slide-menu-logo">nauc<span>.</span>me</div>
+  <div id="sm-logged-out">
+    <div class="slide-menu-item" onclick="closeMenu(); showPage('page-login')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Přihlásit se
+    </div>
+    <div class="slide-menu-item" onclick="closeMenu(); showPage('page-register')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+      Vytvořit účet
+    </div>
+  </div>
+  <div id="sm-logged-in" style="display:none">
+    <div class="slide-menu-item" onclick="closeMenu(); showPage('page-profil')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Můj profil
+    </div>
+    <div class="slide-menu-item" onclick="closeMenu(); showPage('page-add')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Přidat inzerát
+    </div>
+    <div class="slide-menu-item red" onclick="doLogout()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="1.8" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Odhlásit se
+    </div>
+  </div>
+</div>
+
+<!-- ══════ NAVBAR ══════ -->
+<nav class="navbar">
+  <div class="navbar-inner">
+    <div class="nav-logo" onclick="showPage('page-home')">nauc<span>.</span>me</div>
+    <div class="nav-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search-input" placeholder="Zde napište, co hledáte..." oninput="filterInzeraty()">
+    </div>
+    <div class="nav-actions">
+      <span id="nav-lo">
+        <button class="nav-btn ghost" onclick="showPage('page-login')">Přihlásit se</button>
+        <button class="nav-btn solid" onclick="showPage('page-register')">Vytvořit účet</button>
+      </span>
+      <span id="nav-li" style="display:none">
+        <button class="nav-btn ghost" onclick="showPage('page-profil')" id="nav-user-name">Můj profil</button>
+        <button class="nav-btn ghost" onclick="showPage('page-add')">+ Přidat inzerát</button>
+        <button class="nav-btn solid" onclick="doLogout()">Odhlásit se</button>
+      </span>
+    </div>
+    <button class="nav-hamburger" onclick="openMenu()">
+      <svg width="20" height="14" viewBox="0 0 20 14" fill="none">
+        <rect width="20" height="2" rx="1" fill="#374151"/>
+        <rect y="6" width="14" height="2" rx="1" fill="#374151"/>
+        <rect y="12" width="18" height="2" rx="1" fill="#374151"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════ HOME ══════ -->
+<div id="page-home" class="page active">
+  <div class="page-wrap">
+    <div class="home-headline">
+      <h1>Doučování<br>mezi <b>studenty.</b></h1>
+      <p>Najdi tutora, který tě posune dál — nebo sám začni učit a vydělávej.</p>
+    </div>
+    <div class="hero-cards">
+      <div class="hero-card" onclick="showPage('page-browse')">
+        <span class="hero-card-emoji">🎒</span>
+        <h2>Jsem student</h2>
+        <p>Hledám tutora, který mi pomůže s předmětem nebo přijímačkami.</p>
+        <button class="hero-card-btn">→ Najít tutora</button>
+      </div>
+      <div class="hero-card highlighted" onclick="showPage('page-add')">
+        <span class="hero-card-emoji">🎓</span>
+        <h2>Jsem tutor</h2>
+        <p>Chci doučovat ostatní, sdílet znalosti a přivydělat si.</p>
+        <button class="hero-card-btn accent">→ Přidat inzerát</button>
+      </div>
+    </div>
+    <div class="home-cta">
+      <button class="home-cta-btn" onclick="showPage('page-add')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Přidat inzerát zdarma
+      </button>
+    </div>
+    <div class="stats-banner">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#5B5FEF" stroke-width="1.8" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <p class="stats-text">Právě aktivní: <b id="stats-count">…</b> inzerátů</p>
+      <button class="nav-btn solid" style="font-size:13px;padding:8px 16px" onclick="showPage('page-browse')">Zobrazit vše</button>
+    </div>
+
+    <div class="home-inzeraty-section">
+      <h3 class="home-section-title">Nejnovější inzeráty</h3>
+      <div class="cards-grid" id="home-cards-grid"></div>
+    </div>
+
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-action cancel" onclick="showPage('page-browse')"><span>🔍</span><span>Procházet</span></div>
+    <div class="bottom-divider"></div>
+    <div class="bottom-action save" onclick="showPage('page-add')"><span>+</span><span>Přidat inzerát</span></div>
+  </div>
+</div>
+
+<!-- ══════ BROWSE ══════ -->
+<div id="page-browse" class="page">
+  <div class="page-wrap">
+    <div class="browse-header">
+      <h2>🔍 Procházet tutory</h2>
+      <div class="tabs">
+        <div class="tab active" data-kategorie="vse" onclick="setKategorie(this)">Vše</div>
+        <div class="tab" data-kategorie="matematika" onclick="setKategorie(this)">Matematika</div>
+        <div class="tab" data-kategorie="jazyky" onclick="setKategorie(this)">Jazyky</div>
+        <div class="tab" data-kategorie="prirodni" onclick="setKategorie(this)">Přírodní vědy</div>
+        <div class="tab" data-kategorie="humanitni" onclick="setKategorie(this)">Humanitní</div>
+        <div class="tab" data-kategorie="programovani" onclick="setKategorie(this)">Programování</div>
+        <div class="tab" data-kategorie="oblibene" onclick="setKategorie(this)">❤️ Oblíbené</div>
+      </div>
+    </div>
+    <div class="cards-grid">
+      <div id="cards-grid"></div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-action cancel" onclick="showPage('page-home')">← Zpět</div>
+    <div class="bottom-divider"></div>
+    <div class="bottom-action save" onclick="showPage('page-add')">+ Přidat inzerát</div>
+  </div>
+</div>
+
+<!-- ══════ LOGIN ══════ -->
+<div id="page-login" class="page">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-title">Přihlášení</div>
+      <div class="form-error" id="login-error"></div>
+      <input class="auth-input" id="login-email" type="email" placeholder="Email">
+      <input class="auth-input" id="login-heslo" type="password" placeholder="Heslo" style="margin-bottom:0">
+      <div class="forgot-link">Zapomenuté heslo</div>
+      <button class="auth-btn dark" id="btn-login" onclick="doLogin()">Přihlásit se</button>
+      <div class="auth-footer">Ještě nemáš účet? <a onclick="showPage('page-register')">Vytvořit účet</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ REGISTER ══════ -->
+<div id="page-register" class="page">
+  <div class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-title">Vytvoření účtu</div>
+      <div class="form-error" id="reg-error"></div>
+      <input class="auth-input" id="reg-jmeno"    type="text"     placeholder="Jméno">
+      <input class="auth-input" id="reg-prijmeni" type="text"     placeholder="Příjmení">
+      <input class="auth-input" id="reg-email"    type="email"    placeholder="Email">
+      <input class="auth-input" id="reg-telefon"  type="tel"      placeholder="Telefon">
+      <div class="auth-input-wrap">
+        <input class="auth-input" type="password" placeholder="Heslo" id="pw1">
+        <button class="eye-btn" onclick="togglePw('pw1',this)">👁</button>
+      </div>
+      <div class="auth-input-wrap">
+        <input class="auth-input" type="password" placeholder="Heslo znovu" id="pw2">
+        <button class="eye-btn" onclick="togglePw('pw2',this)">👁</button>
+      </div>
+      <button class="auth-btn blue" id="btn-register" onclick="doRegister()" style="margin-top:6px">+ Vytvořit účet</button>
+      <div class="auth-terms">Registrací souhlasíš se <a>Smluvními podmínkami</a> a <a>Zásadami ochrany osobních údajů</a>.</div>
+      <div class="auth-footer">Máš účet? <a onclick="showPage('page-login')">Přihlásit se</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ ADD ══════ -->
+<div id="page-add" class="page">
+  <div class="add-wrap">
+    <div class="add-title">✏️ Přidat inzerát</div>
+    <div class="form-error" id="add-error"></div>
+
+    <div class="form-section-title">Základní informace <span class="req">*</span></div>
+
+    <div class="upload-box" onclick="document.getElementById('img-input').click()">
+      <input type="file" id="img-input" accept="image/*" style="display:none" onchange="previewImg(this)">
+      <img id="upload-preview">
+      <div id="upload-placeholder" style="display:flex;align-items:center;gap:10px">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Nahrat titulní obrázek inzerátu
+      </div>
+    </div>
+
+    <input class="form-input" type="text" placeholder="Název inzerátu">
+
+    <div class="rte-wrap">
+      <div class="rte-toolbar">
+        <button class="rte-btn" onclick="fmt('bold')"><b>B</b></button>
+        <button class="rte-btn" onclick="fmt('italic')"><i>I</i></button>
+        <button class="rte-btn" onclick="fmt('underline')"><u>U</u></button>
+        <div class="rte-sep"></div>
+        <select class="rte-select" onchange="fmtBlock(this.value);this.value=''">
+          <option value="">Block type</option>
+          <option value="p">Odstavec</option>
+          <option value="h2">Nadpis 2</option>
+          <option value="h3">Nadpis 3</option>
+        </select>
+      </div>
+      <div class="rte-content" id="rte" contenteditable="true" data-placeholder="Popis — o sobě, způsobu výuky..."></div>
+    </div>
+
+    <div class="predmet-wrap" id="predmet-wrap">
+      <div class="select-wrap" style="margin-bottom:0;border-radius:14px 14px 0 0;border-bottom:none" onclick="openPredmet()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <input type="text" id="predmet-input" class="select-input" placeholder="Předmět" autocomplete="off"
+          oninput="filterPredmet(this.value)" onfocus="openPredmet()" onclick="event.stopPropagation()">
+        <svg id="predmet-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" style="transition:transform 0.2s;flex-shrink:0"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="predmet-panel" id="predmet-panel">
+        <div class="predmet-grid">
+          <div class="predmet-item" data-val="📐 Matematika"  onclick="selectPredmet(this)"><span>📐</span>Matematika</div>
+          <div class="predmet-item" data-val="🇬🇧 Angličtina" onclick="selectPredmet(this)"><span>🇬🇧</span>Angličtina</div>
+          <div class="predmet-item" data-val="⚗️ Fyzika"      onclick="selectPredmet(this)"><span>⚗️</span>Fyzika</div>
+          <div class="predmet-item" data-val="🧬 Biologie"    onclick="selectPredmet(this)"><span>🧬</span>Biologie</div>
+          <div class="predmet-item" data-val="📝 Čeština"     onclick="selectPredmet(this)"><span>📝</span>Čeština</div>
+          <div class="predmet-item" data-val="💻 Programování" onclick="selectPredmet(this)"><span>💻</span>Programování</div>
+          <div class="predmet-item" data-val="🗺️ Dějepis"     onclick="selectPredmet(this)"><span>🗺️</span>Dějepis</div>
+          <div class="predmet-item" data-val="🔬 Chemie"      onclick="selectPredmet(this)"><span>🔬</span>Chemie</div>
+          <div class="predmet-item" data-val="🎵 Hudba"       onclick="selectPredmet(this)"><span>🎵</span>Hudba</div>
+          <div class="predmet-item" data-val="🎨 Výtvarná"    onclick="selectPredmet(this)"><span>🎨</span>Výtvarná</div>
+          <div class="predmet-item" data-val="🇩🇪 Němčina"    onclick="selectPredmet(this)"><span>🇩🇪</span>Němčina</div>
+          <div class="predmet-item" data-val="🌍 Zeměpis"     onclick="selectPredmet(this)"><span>🌍</span>Zeměpis</div>
+        </div>
+        <div class="predmet-custom-row" id="predmet-custom-row" style="display:none" onclick="useCustomPredmet()">
+          <span>➕</span><span id="predmet-custom-text"></span>
+          <span style="color:var(--muted);font-size:12px;margin-left:auto">Použít vlastní</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="select-wrap" style="cursor:default">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+      <input type="text" placeholder="Lokalita (Praha, Online...)" class="select-input">
+    </div>
+
+    <div class="select-wrap" onclick="toggleDropdown('dd-kdo')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.8" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span class="select-label" id="dd-kdo-label">Koho hledám</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <div class="dropdown-list" id="dd-kdo">
+      <div class="dd-item" onclick="selectDd('dd-kdo','🎒 Základní škola')">🎒 Základní škola</div>
+      <div class="dd-item" onclick="selectDd('dd-kdo','📗 Střední škola')">📗 Střední škola</div>
+      <div class="dd-item" onclick="selectDd('dd-kdo','🎓 Vysoká škola')">🎓 Vysoká škola</div>
+      <div class="dd-item" onclick="selectDd('dd-kdo','👤 Dospělí')">👤 Dospělí</div>
+      <div class="dd-item" onclick="selectDd('dd-kdo','🌍 Kdokoliv')">🌍 Kdokoliv</div>
+    </div>
+
+    <div class="form-section-title">Cena za hodinu</div>
+    <div class="price-row">
+      <input class="form-input" type="number" placeholder="Od (Kč)" id="price-min">
+      <span style="color:var(--muted);font-size:18px;flex-shrink:0">—</span>
+      <input class="form-input" type="number" placeholder="Do (Kč)" id="price-max">
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="price-dohodou" onchange="togglePriceDohodou(this)">
+      <span class="checkbox-box"></span>
+      <span>Cena je dohodou</span>
+    </label>
+
+    <button class="submit-btn" id="btn-add" onclick="pridatInzerat()">🚀 Zveřejnit inzerát</button>
+  </div>
+</div>
+
+<!-- ══════ PROFIL ══════ -->
+<div id="page-profil" class="page">
+  <div class="page-wrap">
+
+    <!-- Hlavička profilu -->
+    <div class="profil-header">
+      <div class="profil-avatar" id="profil-avatar">?</div>
+      <div class="profil-info">
+        <div class="profil-jmeno" id="profil-jmeno">—</div>
+        <div class="profil-email" id="profil-email">—</div>
+      </div>
+      <button class="nav-btn solid" style="margin-left:auto;font-size:13px;padding:8px 16px" onclick="showPage('page-add')">+ Nový inzerát</button>
+    </div>
+
+    <!-- Záložky -->
+    <div class="profil-tabs">
+      <div class="profil-tab active" id="ptab-moje"    onclick="switchProfilTab('moje')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Moje inzeráty
+      </div>
+      <div class="profil-tab" id="ptab-zajem" onclick="switchProfilTab('zajem')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Přijatý zájem
+      </div>
+    </div>
+
+    <!-- TAB: Moje inzeráty -->
+    <div id="ptab-content-moje">
+      <div id="moje-inzeraty-list" class="profil-list"></div>
+    </div>
+
+    <!-- TAB: Přijatý zájem -->
+    <div id="ptab-content-zajem" style="display:none">
+      <div id="zajem-list" class="profil-list"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════ MODALS ══════ -->
+<div class="overlay" id="modal-smazat">
+  <div class="modal-card">
+    <div class="modal-emoji">🗑️</div>
+    <div class="modal-title">Smazat inzerát?</div>
+    <p class="modal-desc">Tato akce je nevratná. Inzerát bude trvale odstraněn.</p>
+    <button class="modal-btn" style="background:#DC2626" id="btn-confirm-smazat">Ano, smazat</button>
+    <button class="modal-btn secondary" onclick="closeModal('modal-smazat')">Zrušit</button>
+  </div>
+</div>
+<div class="overlay" id="modal-success">
+  <div class="modal-card">
+    <div class="modal-emoji">🎉</div>
+    <div class="modal-title">Inzerát zveřejněn!</div>
+    <p class="modal-desc">Tvůj inzerát je viditelný pro všechny studenty. Brzy tě někdo kontaktuje!</p>
+    <button class="modal-btn" onclick="closeModal('modal-success'); showPage('page-browse')">Zobrazit inzeráty</button>
+  </div>
+</div>
+
+<div class="overlay" id="modal-auth-guard">
+  <div class="modal-card">
+    <div class="modal-emoji">🔒</div>
+    <div class="modal-title">Nejsi přihlášen/a</div>
+    <p class="modal-desc">Pro přidání inzerátu se musíš nejdříve přihlásit nebo vytvořit účet.</p>
+    <button class="modal-btn" onclick="closeModal('modal-auth-guard'); showPage('page-login')">Přihlásit se</button>
+    <button class="modal-btn secondary" onclick="closeModal('modal-auth-guard'); showPage('page-register')">Vytvořit účet</button>
+  </div>
+</div>
+
+<div class="overlay" id="modal-zajem">
+  <div class="modal-card">
+    <div class="modal-emoji">✉️</div>
+    <div class="modal-title">Projevit zájem</div>
+    <p class="modal-desc">Napiš krátkou zprávu tutorovi. Uvidí tvůj email.</p>
+    <div class="zajem-form">
+      <textarea id="zajem-zprava-input" placeholder="Ahoj, mám zájem o doučování..."></textarea>
+    </div>
+    <button class="modal-btn" id="btn-odeslat-zajem" onclick="odeslatzajem()">Odeslat zájem</button>
+    <button class="modal-btn secondary" onclick="closeModal('modal-zajem')">Zrušit</button>
+  </div>
+</div>
+
+<!-- ══════ DETAIL INZERÁTU ══════ -->
+<div class="overlay" id="modal-detail" onclick="zavritDetail(event)">
+  <div class="detail-card" id="detail-card-inner">
+    <button class="detail-close" onclick="closeModal('modal-detail')">✕</button>
+    <div id="detail-obrazek-wrap"></div>
+    <div class="detail-body">
+      <div class="detail-tags" id="detail-tags"></div>
+      <h2 class="detail-nazev" id="detail-nazev"></h2>
+      <div class="detail-meta" id="detail-meta"></div>
+      <div class="detail-popis" id="detail-popis"></div>
+      <div class="detail-autor" id="detail-autor"></div>
+      <button class="modal-btn" id="btn-detail-zajem" onclick="projevitZajemZDetailu()">✉️ Mám zájem</button>
+    </div>
+  </div>
+</div>
+
+<!-- ES module — nutné pro import Supabase -->
+<script type="module" src="app.js"></script>
+</body>
+</html>
