@@ -253,7 +253,7 @@ function zobrazFiltrované() {
   const grid = document.getElementById('cards-grid')
   if (!grid) return
 
-  const query = (document.getElementById('search-input')?.value || '').toLowerCase().trim()
+  const query = (document.getElementById('search-input')?.value || document.getElementById('mobile-search-input')?.value || '').toLowerCase().trim()
 
   const KATEGORIE_MAP = {
     matematika:   ['mat', 'algebra', 'geometri', 'statist', 'kalkul'],
@@ -682,14 +682,36 @@ function initDarkMode() {
   }
 }
 
-Object.assign(window, {
-  showPage, closeModal, doLogin, doRegister, doLogout,
-  openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
-  togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
-  useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
-  setKategorie, filterInzeraty, otevritDetail, zavritDetail, projevitZajemZDetailu, odeslatZajemZDetailu,
-  toggleDarkMode
-})
+function toggleMobileSearch() {
+  const wrap = document.getElementById('mobile-search-input-wrap')
+  const input = document.getElementById('mobile-search-input')
+  const isOpen = wrap.classList.toggle('open')
+  if (isOpen) { setTimeout(() => input.focus(), 300) }
+  else { input.value = ''; syncMobileSearch('') }
+}
+
+function clearMobileSearch() {
+  const input = document.getElementById('mobile-search-input')
+  input.value = ''
+  syncMobileSearch('')
+  input.focus()
+}
+
+function syncMobileSearch(val) {
+  const desktop = document.getElementById('search-input')
+  if (desktop) desktop.value = val
+  zobrazFiltrované()
+}
+
+function setKategorieById(kat) {
+  const tab = document.querySelector(`.tab[data-kategorie="${kat}"]`)
+  if (tab) setKategorie(tab)
+  // Zvýrazni oblíbené tlačítko
+  const favBtn = document.querySelector('.bottom-action.fav')
+  if (favBtn) favBtn.classList.toggle('active', kat === 'oblibene')
+}
+
+Object.assign(window, { toggleMobileSearch, clearMobileSearch, syncMobileSearch, setKategorieById })
 
 // ─────────────────────────────────────
 //  PROFIL
@@ -1017,4 +1039,15 @@ Object.assign(window, {
   nactiProfil, switchProfilTab, potvrditSmazani, smazatInzerat,
   projevitZajem, odeslatzajem,
   otevritEditModal, toggleEditDohodou, ulozitUpravuInzeratu, editPreviewImg
+})
+
+
+
+Object.assign(window, {
+  showPage, closeModal, doLogin, doRegister, doLogout,
+  openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
+  togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
+  useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
+  setKategorie, filterInzeraty, otevritDetail, zavritDetail, projevitZajemZDetailu, odeslatZajemZDetailu,
+  toggleDarkMode, toggleMobileSearch, clearMobileSearch, syncMobileSearch, setKategorieById
 })
