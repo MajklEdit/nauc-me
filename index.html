@@ -166,10 +166,21 @@
       <div id="cards-grid"></div>
     </div>
   </div>
-  <div class="bottom-bar">
-    <div class="bottom-action cancel" onclick="showPage('page-home')">← Zpět</div>
+  <div class="bottom-bar browse-bottom-bar">
+    <div class="mobile-search-wrap" id="mobile-search-wrap">
+      <button class="mobile-search-toggle" id="mobile-search-toggle" onclick="toggleMobileSearch()" title="Hledat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+      <div class="mobile-search-input-wrap" id="mobile-search-input-wrap">
+        <input type="text" id="mobile-search-input" placeholder="Hledat tutora, předmět..." oninput="syncMobileSearch(this.value)" autocomplete="off">
+        <button class="mobile-search-clear" onclick="clearMobileSearch()">✕</button>
+      </div>
+    </div>
     <div class="bottom-divider"></div>
-    <div class="bottom-action save" onclick="showPage('page-add')">+ Přidat inzerát</div>
+    <div class="bottom-action fav" onclick="setKategorieById('oblibene')">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span>Oblíbené</span>
+    </div>
   </div>
 </div>
 
