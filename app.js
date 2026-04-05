@@ -895,13 +895,43 @@ async function odeslatzajem() {
 }
 
 let inzeratProEdit = null
+let editNovyObrazek = null // nový soubor fotky nebo null
+
+function editPreviewImg(input) {
+  if (!input.files?.[0]) return
+  editNovyObrazek = input.files[0]
+  const r = new FileReader()
+  r.onload = e => {
+    const prev = document.getElementById('edit-upload-preview')
+    const ph   = document.getElementById('edit-upload-placeholder')
+    prev.src = e.target.result; prev.style.display = 'block'
+    ph.style.display = 'none'
+  }
+  r.readAsDataURL(input.files[0])
+}
 
 function otevritEditModal(id) {
   const inzerat = vsechnyInzeraty.find(i => i.id === id)
-    || { id, nazev:'', predmet:'', lokalita:'', cena_od:null, cena_do:null, cena_dohodou:false }
+    || { id, nazev:'', predmet:'', lokalita:'', cena_od:null, cena_do:null, cena_dohodou:false, obrazek_url:null }
   inzeratProEdit = id
+  editNovyObrazek = null
 
-  // Pokus načíst čerstvá data z Supabase (async, bez blokování)
+  // Reset fotky
+  const prev = document.getElementById('edit-upload-preview')
+  const ph   = document.getElementById('edit-upload-placeholder')
+  const imgInput = document.getElementById('edit-img-input')
+  if (imgInput) imgInput.value = ''
+  if (prev) {
+    if (inzerat.obrazek_url) {
+      prev.src = inzerat.obrazek_url; prev.style.display = 'block'
+      if (ph) ph.style.display = 'none'
+    } else {
+      prev.style.display = 'none'
+      if (ph) ph.style.display = 'flex'
+    }
+  }
+
+  // Pokus načíst čerstvá data z Supabase (async)
   supabase.from('inzeraty').select('*').eq('id', id).single().then(({ data }) => {
     if (data) {
       document.getElementById('edit-nazev').value    = data.nazev || ''
@@ -910,8 +940,13 @@ function otevritEditModal(id) {
       document.getElementById('edit-cena-od').value  = data.cena_od || ''
       document.getElementById('edit-cena-do').value  = data.cena_do || ''
       const cb = document.getElementById('edit-dohodou')
-      cb.checked = !!data.cena_dohodou
-      toggleEditDohodou(cb)
+      cb.checked = !!data.cena_dohodou; toggleEditDohodou(cb)
+      if (data.obrazek_url && !editNovyObrazek) {
+        const p = document.getElementById('edit-upload-preview')
+        const pl = document.getElementById('edit-upload-placeholder')
+        if (p) { p.src = data.obrazek_url; p.style.display = 'block' }
+        if (pl) pl.style.display = 'none'
+      }
     }
   })
 
@@ -922,8 +957,7 @@ function otevritEditModal(id) {
   document.getElementById('edit-cena-od').value  = inzerat.cena_od || ''
   document.getElementById('edit-cena-do').value  = inzerat.cena_do || ''
   const cb = document.getElementById('edit-dohodou')
-  cb.checked = !!inzerat.cena_dohodou
-  toggleEditDohodou(cb)
+  cb.checked = !!inzerat.cena_dohodou; toggleEditDohodou(cb)
 
   const errEl = document.getElementById('edit-error')
   if (errEl) errEl.style.display = 'none'
@@ -951,13 +985,22 @@ async function ulozitUpravuInzeratu() {
 
   setLoading('btn-edit-save', true)
 
-  const { error } = await supabase.from('inzeraty').update({
+  // Upload nové fotky pokud vybraná
+  let obrazekUrl = undefined // undefined = neměnit
+  if (editNovyObrazek) {
+    obrazekUrl = await uploadObrazek(editNovyObrazek)
+  }
+
+  const updates = {
     nazev, predmet,
     lokalita:    lokalita || null,
     cena_od:     cenaOd ? parseInt(cenaOd) : null,
     cena_do:     cenaDo ? parseInt(cenaDo) : null,
     cena_dohodou: dohodou
-  }).eq('id', inzeratProEdit)
+  }
+  if (obrazekUrl !== undefined) updates.obrazek_url = obrazekUrl
+
+  const { error } = await supabase.from('inzeraty').update(updates).eq('id', inzeratProEdit)
 
   setLoading('btn-edit-save', false)
 
@@ -965,12 +1008,13 @@ async function ulozitUpravuInzeratu() {
   closeModal('modal-edit')
   showToast('Inzerát byl upraven ✅')
   inzeratProEdit = null
+  editNovyObrazek = null
   nactiMojeInzeraty()
-  nactiInzeraty() // refresh cache
+  nactiInzeraty()
 }
 
 Object.assign(window, {
   nactiProfil, switchProfilTab, potvrditSmazani, smazatInzerat,
   projevitZajem, odeslatzajem,
-  otevritEditModal, toggleEditDohodou, ulozitUpravuInzeratu
+  otevritEditModal, toggleEditDohodou, ulozitUpravuInzeratu, editPreviewImg
 })
