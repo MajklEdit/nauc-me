@@ -160,7 +160,8 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--d
 }
 .hero-card:hover h2 { color: white; }
 .hero-card:hover p { color: rgba(255,255,255,0.8); }
-.hero-card:hover .hero-card-btn { background: rgba(255,255,255,0.2); color: white; }
+.hero-card:hover .hero-card-btn { background: rgba(255,255,255,0.22); color: white; }
+.hero-card:hover .hero-card-btn:hover { background: white; color: #C026D3; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transform: translateY(-2px) scale(1.03); }
 .hero-card:hover .hero-card-emoji { filter: drop-shadow(0 4px 16px rgba(255,255,255,0.3)); }
 .hero-card.highlighted { background: var(--grad-soft); border-color: rgba(139,92,246,0.2); }
 .hero-card.highlighted:hover { background: var(--grad); border-color: transparent; }
@@ -772,7 +773,8 @@ body.dark .hero-card:hover {
 }
 body.dark .hero-card:hover h2 { color: white; }
 body.dark .hero-card:hover p { color: rgba(255,255,255,0.8); }
-body.dark .hero-card:hover .hero-card-btn { background: rgba(255,255,255,0.2); color: white; }
+body.dark .hero-card:hover .hero-card-btn { background: rgba(255,255,255,0.22); color: white; }
+.hero-card:hover .hero-card-btn:hover { background: white; color: #C026D3; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transform: translateY(-2px) scale(1.03); }
 body.dark .hero-card.highlighted { background: #1e1b4b; }
 body.dark .hero-card h2 { color: #f1f5f9; }
 body.dark .hero-card p { color: #94a3b8; }
