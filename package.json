@@ -1,13 +1,10 @@
 {
-  "name": "naucim-to",
+  "name": "nauc-me",
   "version": "1.0.0",
   "dependencies": {
     "serve": "14.2.4"
   },
   "scripts": {
-    "start": "serve . --listen $PORT --no-clipboard"
-  },
-  "engines": {
-    "node": ">=18"
+    "start": "serve . -l 3000 --no-clipboard"
   }
 }
