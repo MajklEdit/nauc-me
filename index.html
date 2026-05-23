@@ -144,12 +144,6 @@
   <div class="navbar-inner">
     <div class="nav-logo" onclick="showPage('page-home')">nauc<span>.</span>me</div>
 
-    <!-- Navigační breadcrumb / stránkové odkazy -->
-    <div class="nav-links">
-      <button class="nav-link-btn" onclick="showPage('page-home')">Domů</button>
-      <button class="nav-link-btn" onclick="showPage('page-browse')">Tutori</button>
-    </div>
-
     <div class="nav-actions">
       <!-- Dark mode jen na desktopu v navbaru -->
       <button class="dark-mode-btn" id="dark-mode-btn" onclick="toggleDarkMode()" title="Přepnout režim">🌙</button>
@@ -223,33 +217,7 @@
 <div id="page-browse" class="page">
   <div class="page-wrap">
     <div class="browse-header">
-      <h2>🔍 Procházet tutory</h2>
-
-      <!-- Search + kategorie select -->
-      <div class="browse-filter-bar">
-        <div class="browse-search-wrap">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="browse-search-input" placeholder="Hledat tutora, předmět..." oninput="filterInzeraty()" autocomplete="off">
-        </div>
-        <select class="browse-cat-select" id="browse-cat-select" onchange="setKategorieFromSelect(this.value)">
-          <option value="vse">🗂 Všechny kategorie</option>
-          <option value="matematika">📐 Matematika</option>
-          <option value="jazyky">🗣 Jazyky</option>
-          <option value="prirodni">🔬 Přírodní vědy</option>
-          <option value="humanitni">📖 Humanitní vědy</option>
-          <option value="programovani">💻 Programování</option>
-        </select>
-      </div>
-
-      <!-- Tab lišta (skrytá na mobilu, viditelná na desktopu) -->
-      <div class="tabs">
-        <div class="tab active" data-kategorie="vse" onclick="setKategorie(this)">Vše</div>
-        <div class="tab" data-kategorie="matematika" onclick="setKategorie(this)">Matematika</div>
-        <div class="tab" data-kategorie="jazyky" onclick="setKategorie(this)">Jazyky</div>
-        <div class="tab" data-kategorie="prirodni" onclick="setKategorie(this)">Přírodní vědy</div>
-        <div class="tab" data-kategorie="humanitni" onclick="setKategorie(this)">Humanitní</div>
-        <div class="tab" data-kategorie="programovani" onclick="setKategorie(this)">Programování</div>
-      </div>
+      <h2>Procházet tutory</h2>
     </div>
     <div class="cards-grid">
       <div id="cards-grid"></div>
