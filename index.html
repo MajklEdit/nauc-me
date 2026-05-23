@@ -263,7 +263,7 @@
       <div class="form-error" id="login-error"></div>
       <input class="auth-input" id="login-email" type="email" placeholder="Email">
       <input class="auth-input" id="login-heslo" type="password" placeholder="Heslo" style="margin-bottom:0">
-      <div class="forgot-link">Zapomenuté heslo</div>
+      <div class="forgot-link" onclick="openForgotModal()">Zapomenuté heslo</div>
       <button class="auth-btn dark" id="btn-login" onclick="doLogin()">Přihlásit se</button>
       <div class="auth-footer">Ještě nemáš účet? <a onclick="showPage('page-register')">Vytvořit účet</a></div>
     </div>
@@ -547,6 +547,20 @@
     <div class="form-error" id="edit-error"></div>
     <button class="modal-btn" id="btn-edit-save" onclick="ulozitUpravuInzeratu()">💾 Uložit změny</button>
     <button class="modal-btn secondary" onclick="closeModal('modal-edit')">Zrušit</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL — ZAPOMENUTÉ HESLO ══════ -->
+<div class="overlay" id="modal-forgot">
+  <div class="modal-card">
+    <button class="modal-close-btn" onclick="closeModal('modal-forgot')">✕</button>
+    <div class="modal-emoji">🔑</div>
+    <div class="modal-title">Zapomenuté heslo</div>
+    <p class="modal-desc">Zadej svůj email a pošleme ti odkaz pro obnovení hesla.</p>
+    <div class="form-error" id="forgot-error"></div>
+    <input class="auth-input" id="forgot-email" type="email" placeholder="Tvůj email" style="margin-bottom:12px">
+    <button class="modal-btn" id="btn-forgot" onclick="doForgotPassword()">Odeslat odkaz</button>
+    <button class="modal-btn secondary" onclick="closeModal('modal-forgot')">Zrušit</button>
   </div>
 </div>
 
