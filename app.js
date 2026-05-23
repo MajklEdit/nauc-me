@@ -289,6 +289,9 @@ function setKategorie(el) {
 }
 
 function filterInzeraty() {
+  const val = document.getElementById('browse-search-input')?.value || ''
+  const clearBtn = document.getElementById('browse-search-clear')
+  if (clearBtn) clearBtn.style.display = val.length > 0 ? 'flex' : 'none'
   zobrazFiltrované()
 }
 
@@ -768,6 +771,21 @@ function setKategorieById(kat) {
   if (sel) sel.value = kat
 }
 
+function setQuickKat(el) {
+  document.querySelectorAll('.quick-cat').forEach(b => b.classList.remove('active'))
+  el.classList.add('active')
+  aktivniKategorie = el.dataset.kategorie
+  zobrazFiltrované()
+}
+
+function clearBrowseSearch() {
+  const input = document.getElementById('browse-search-input')
+  if (input) { input.value = ''; input.focus() }
+  const clearBtn = document.getElementById('browse-search-clear')
+  if (clearBtn) clearBtn.style.display = 'none'
+  zobrazFiltrované()
+}
+
 // Listener pro select → kategorie
 document.addEventListener('kategorieChange', (e) => {
   aktivniKategorie = e.detail
@@ -1107,5 +1125,6 @@ Object.assign(window, {
   togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
   useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
   setKategorie, filterInzeraty, otevritDetail, zavritDetail, projevitZajemZDetailu, odeslatZajemZDetailu,
-  toggleDarkMode, toggleMobileSearch, clearMobileSearch, syncMobileSearch, setKategorieById
+  toggleDarkMode, toggleMobileSearch, clearMobileSearch, syncMobileSearch, setKategorieById,
+  setQuickKat, clearBrowseSearch
 })
