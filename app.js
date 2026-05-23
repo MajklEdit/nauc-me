@@ -4,7 +4,6 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
-// ⚠️ Doplň své klíče:
 const SUPABASE_URL = 'https://dxibiwizupnnmsdqovee.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWJpd2l6dXBubm1zZHFvdmVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDI5NDMsImV4cCI6MjA5MDgxODk0M30.KEdRUbKDqfwWooeCeuHNDScBQWGp7c7R9VGv8lWHsaY'
 
@@ -16,34 +15,58 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 let currentUser = null
 let vsechnyInzeraty = []
 let aktivniKategorie = 'vse'
-let oblibene = new Set(JSON.parse(localStorage.getItem('oblibene') || '[]'))
+// Oblíbené funkce ODSTRANĚNA
+
+// ─────────────────────────────────────
+//  HISTORY / ROUTER
+// ─────────────────────────────────────
+const PAGE_TITLES = {
+  'page-home':     'nauc.me – Doučování mezi studenty',
+  'page-browse':   'nauc.me – Procházet tutory',
+  'page-login':    'nauc.me – Přihlášení',
+  'page-register': 'nauc.me – Vytvoření účtu',
+  'page-add':      'nauc.me – Přidat inzerát',
+  'page-profil':   'nauc.me – Můj profil',
+}
+
+function pushPage(id) {
+  const hash = '#' + id
+  if (window.location.hash !== hash) {
+    history.pushState({ page: id }, '', hash)
+  }
+  document.title = PAGE_TITLES[id] || 'nauc.me'
+}
+
+window.addEventListener('popstate', (e) => {
+  const id = e.state?.page || pageFromHash()
+  _showPageInternal(id, false)
+})
+
+function pageFromHash() {
+  const h = window.location.hash.replace('#', '')
+  if (h && document.getElementById(h)) return h
+  return 'page-home'
+}
 
 // ─────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession()
-  if (session) { currentUser = session.user; onLogin(currentUser) }
+  if (session) {
+    currentUser = session.user
+    // Jen aktualizuj UI, nespouštěj oslavu ani přesměrování
+    _updateNavUI(currentUser, false)
+  }
 
   supabase.auth.onAuthStateChange((_event, session) => {
     if (session) {
       currentUser = session.user
-      // Po potvrzení emailu nebo přihlášení
       if (_event === 'SIGNED_IN') {
-        onLogin(currentUser)
+        // Skutečné přihlášení — ukáže oslavu, zůstane na home page
+        _updateNavUI(currentUser, true)
       } else if (_event === 'USER_UPDATED' || _event === 'TOKEN_REFRESHED') {
-        // Tichá aktualizace session — jen aktualizuj UI bez oslavy
-        const navLo = document.getElementById('nav-lo')
-        const navLi = document.getElementById('nav-li')
-        const smOut = document.getElementById('sm-logged-out')
-        const smIn  = document.getElementById('sm-logged-in')
-        if (navLo) navLo.style.display = 'none'
-        if (navLi) navLi.style.display = 'inline-flex'
-        if (smOut) smOut.style.display = 'none'
-        if (smIn)  smIn.style.display  = 'block'
-        const jmeno = currentUser.user_metadata?.jmeno || currentUser.email.split('@')[0]
-        const el = document.getElementById('nav-user-name')
-        if (el) el.textContent = jmeno
+        _updateNavUI(currentUser, false)
       }
     } else {
       currentUser = null; onLogout()
@@ -51,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   })
 
   initDarkMode()
-  nactiInzeraty() // načte inzeráty pro browse i home page
+  nactiInzeraty()
   const si = document.getElementById('search-input'); if (si) si.value = ''
 
   document.querySelectorAll('.tab').forEach(tab => {
@@ -60,7 +83,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       this.classList.add('active')
     })
   })
+
+  // Nastav počáteční stránku dle hashe nebo výchozí home
+  const initialPage = pageFromHash()
+  _showPageInternal(initialPage, false)
+  if (!window.location.hash) {
+    history.replaceState({ page: 'page-home' }, '', '#page-home')
+  }
 })
+
+// ─────────────────────────────────────
+//  AKTUALIZACE NAV UI
+// ─────────────────────────────────────
+function _updateNavUI(user, showCelebration) {
+  const navLo = document.getElementById('nav-lo')
+  const navLi = document.getElementById('nav-li')
+  const smOut = document.getElementById('sm-logged-out')
+  const smIn  = document.getElementById('sm-logged-in')
+  if (navLo) navLo.style.display = 'none'
+  if (navLi) navLi.style.display = 'inline-flex'
+  if (smOut) smOut.style.display = 'none'
+  if (smIn)  smIn.style.display  = 'block'
+  const jmeno = user.user_metadata?.jmeno || user.email.split('@')[0]
+  const el = document.getElementById('nav-user-name')
+  if (el) el.textContent = jmeno
+
+  if (showCelebration && !window._loginAnimShown) {
+    window._loginAnimShown = true
+    showLoginCelebration(jmeno)
+    // Zůstaneme na home page — žádné přesměrování
+  }
+}
 
 // ─────────────────────────────────────
 //  NAVIGACE
@@ -76,12 +129,24 @@ function showPage(id) {
     if (m) m.classList.add('show')
     return
   }
+  pushPage(id)
+  _showPageInternal(id, true)
+}
+
+function _showPageInternal(id, scroll) {
+  if (id === 'page-add' && !currentUser) {
+    const m = document.getElementById('modal-auth-guard')
+    if (m) m.classList.add('show')
+    return
+  }
+  if (id === 'page-profil' && !currentUser) {
+    id = 'page-home'
+  }
   const target = document.getElementById(id)
   if (!target) return
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   target.classList.add('active')
-  window.scrollTo(0, 0)
-  // Vždy vyčisti search input
+  if (scroll) window.scrollTo(0, 0)
   const si = document.getElementById('search-input')
   if (si) si.value = ''
   if (id === 'page-browse') nactiInzeraty()
@@ -138,6 +203,8 @@ async function doLogin() {
   setLoading('btn-login', false)
 
   if (error) return showError('login-error', prekladChyby(error.message))
+  // Po úspěšném přihlášení jdeme na home page
+  showPage('page-home')
 }
 
 // ─────────────────────────────────────
@@ -149,24 +216,7 @@ async function doLogout() {
 }
 
 function onLogin(user) {
-  const navLo = document.getElementById('nav-lo')
-  const navLi = document.getElementById('nav-li')
-  const smOut = document.getElementById('sm-logged-out')
-  const smIn  = document.getElementById('sm-logged-in')
-  if (navLo) navLo.style.display = 'none'
-  if (navLi) navLi.style.display = 'inline-flex'
-  if (smOut) smOut.style.display = 'none'
-  if (smIn)  smIn.style.display  = 'block'
-  const jmeno = user.user_metadata?.jmeno || user.email.split('@')[0]
-  const el = document.getElementById('nav-user-name')
-  if (el) el.textContent = jmeno
-
-  // Animace přihlášení — pouze při skutečném loginu (ne při page reload)
-  if (!window._loginAnimShown) {
-    window._loginAnimShown = true
-    showLoginCelebration(jmeno)
-    setTimeout(() => showPage('page-profil'), 1800)
-  }
+  _updateNavUI(user, true)
 }
 
 function showLoginCelebration(jmeno) {
@@ -214,20 +264,13 @@ async function nactiInzeraty() {
   if (error) { grid.innerHTML = '<div class="loading-msg">Chyba při načítání 😕</div>'; console.error(error); return }
 
   vsechnyInzeraty = data || []
-  // Aktualizuj počítadlo
   const countEl = document.getElementById('stats-count')
   if (countEl) countEl.textContent = vsechnyInzeraty.length
-  // Zobraz náhled na home page
   const homeGrid = document.getElementById('home-cards-grid')
   if (homeGrid) {
     const prvnich6 = vsechnyInzeraty.slice(0, 6)
     if (prvnich6.length) {
       homeGrid.innerHTML = prvnich6.map(renderKarta).join('')
-      homeGrid.querySelectorAll('.heart-btn').forEach(btn => {
-        const id = btn.dataset.id
-        btn.textContent = oblibene.has(id) ? '❤️' : '🤍'
-        btn.addEventListener('click', function(e) { e.stopPropagation(); toggleOblibeny(id, this) })
-      })
     } else {
       homeGrid.innerHTML = '<div class="loading-msg">Zatím žádné inzeráty. Buď první! 🚀</div>'
     }
@@ -253,7 +296,8 @@ function zobrazFiltrované() {
   const grid = document.getElementById('cards-grid')
   if (!grid) return
 
-  const query = (document.getElementById('search-input')?.value || document.getElementById('mobile-search-input')?.value || '').toLowerCase().trim()
+  const searchEl = document.getElementById('browse-search-input')
+  const query = (searchEl?.value || document.getElementById('mobile-search-input')?.value || '').toLowerCase().trim()
 
   const KATEGORIE_MAP = {
     matematika:   ['mat', 'algebra', 'geometri', 'statist', 'kalkul'],
@@ -264,58 +308,25 @@ function zobrazFiltrované() {
   }
 
   let filtered = vsechnyInzeraty.filter(i => {
-    // Filtr oblíbených
-    if (aktivniKategorie === 'oblibene') return oblibene.has(i.id)
-
-    // Filtr kategorie
     if (aktivniKategorie !== 'vse') {
       const klicova = KATEGORIE_MAP[aktivniKategorie] || []
       const predmet = (i.predmet || '').toLowerCase()
       const nazev   = (i.nazev   || '').toLowerCase()
       if (!klicova.some(k => predmet.includes(k) || nazev.includes(k))) return false
     }
-
-    // Fulltextové hledání
     if (query) {
       const text = `${i.nazev} ${i.predmet} ${i.popis || ''} ${i.lokalita || ''}`.toLowerCase()
       if (!text.includes(query)) return false
     }
-
     return true
   })
 
   if (!filtered.length) {
-    if (aktivniKategorie === 'oblibene') {
-      grid.innerHTML = '<div class="loading-msg">Zatím žádné oblíbené. Klikni na 🤍 u inzerátu!</div>'
-    } else {
-      grid.innerHTML = '<div class="loading-msg">Žádné výsledky 🔍</div>'
-    }
+    grid.innerHTML = '<div class="loading-msg">Žádné výsledky 🔍</div>'
     return
   }
 
   grid.innerHTML = filtered.map(renderKarta).join('')
-
-  grid.querySelectorAll('.heart-btn').forEach(btn => {
-    const id = btn.dataset.id
-    btn.textContent = oblibene.has(id) ? '❤️' : '🤍'
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation()
-      toggleOblibeny(id, this)
-    })
-  })
-}
-
-function toggleOblibeny(id, btn) {
-  if (oblibene.has(id)) {
-    oblibene.delete(id)
-    btn.textContent = '🤍'
-  } else {
-    oblibene.add(id)
-    btn.textContent = '❤️'
-  }
-  localStorage.setItem('oblibene', JSON.stringify([...oblibene]))
-  // Pokud jsme na záložce oblíbené, překresli
-  if (aktivniKategorie === 'oblibene') zobrazFiltrované()
 }
 
 function renderKarta(i) {
@@ -331,9 +342,7 @@ function renderKarta(i) {
 
   return `
     <div class="card" onclick="otevritDetail('${i.id}')" style="cursor:pointer">
-      <div class="card-img ${cls}">
-        <div class="heart-btn" data-id="${i.id}">🤍</div>${img}
-      </div>
+      <div class="card-img ${cls}">${img}</div>
       <div class="card-body">
         <div class="card-meta">
           <span class="card-subject">📚 ${escHtml(i.predmet || 'Doučování')}</span>
@@ -362,7 +371,6 @@ function otevritDetail(id) {
   const emoji = getPredmetEmoji(inzerat.predmet)
   const cls   = getPredmetClass(inzerat.predmet)
 
-  // Obrázek
   const obrazekWrap = document.getElementById('detail-obrazek-wrap')
   if (inzerat.obrazek_url) {
     obrazekWrap.innerHTML = `<img src="${inzerat.obrazek_url}" alt="${escHtml(inzerat.nazev)}">`
@@ -370,22 +378,18 @@ function otevritDetail(id) {
     obrazekWrap.innerHTML = `<div class="detail-obrazek-placeholder ${cls}">${emoji}</div>`
   }
 
-  // Tagy
   const tags = [inzerat.predmet, inzerat.koho_hledam].filter(Boolean)
   document.getElementById('detail-tags').innerHTML = tags.map(t =>
     `<span class="detail-tag">📚 ${escHtml(t)}</span>`
   ).join('')
 
-  // Název
   document.getElementById('detail-nazev').textContent = inzerat.nazev
 
-  // Meta
   const meta = []
   if (cena)             meta.push(`<span>💰 ${escHtml(cena)}</span>`)
   if (inzerat.lokalita) meta.push(`<span>📍 ${escHtml(inzerat.lokalita)}</span>`)
   document.getElementById('detail-meta').innerHTML = meta.join('')
 
-  // Popis
   const popisEl = document.getElementById('detail-popis')
   if (inzerat.popis && inzerat.popis !== '<br>' && inzerat.popis.trim()) {
     popisEl.innerHTML = inzerat.popis
@@ -394,7 +398,6 @@ function otevritDetail(id) {
     popisEl.style.display = 'none'
   }
 
-  // Autor
   const jmeno = inzerat.autor_jmeno || (inzerat.autor_email ? inzerat.autor_email.split('@')[0] : 'Tutor')
   const initials = jmeno.charAt(0).toUpperCase()
   document.getElementById('detail-autor').innerHTML = `
@@ -404,11 +407,9 @@ function otevritDetail(id) {
       <div>Tutor</div>
     </div>`
 
-  // Autofill pokud přihlášen
   const jmenoInput = document.getElementById('detail-zajem-jmeno')
   const emailInput = document.getElementById('detail-zajem-email')
   const errorEl    = document.getElementById('detail-zajem-error')
-  const successEl  = document.getElementById('detail-zajem-success')
   if (jmenoInput) {
     jmenoInput.value = currentUser ? (currentUser.user_metadata?.jmeno || '') : ''
     jmenoInput.readOnly = !!currentUser
@@ -422,11 +423,14 @@ function otevritDetail(id) {
   if (errorEl) errorEl.style.display = 'none'
   const textarea = document.getElementById('detail-zajem-zprava')
   if (textarea) textarea.value = ''
-  // Odstraň případný success
   const oldSuccess = document.getElementById('detail-zajem-success')
   if (oldSuccess) oldSuccess.remove()
   const btn = document.getElementById('btn-detail-odeslat')
   if (btn) { btn.disabled = false; btn.textContent = 'Odeslat zájem' }
+
+  // Odstraň heart tlačítko z detailu (oblíbené zrušeno)
+  const heartBtn = document.getElementById('detail-heart-btn')
+  if (heartBtn) heartBtn.style.display = 'none'
 
   document.getElementById('modal-detail').classList.add('show')
   document.body.style.overflow = 'hidden'
@@ -483,8 +487,65 @@ async function odeslatZajemZDetailu() {
 }
 
 function projevitZajemZDetailu() {
-  // Zachováno pro zpětnou kompatibilitu
   odeslatZajemZDetailu()
+}
+
+// ─────────────────────────────────────
+//  VALIDACE CEN
+// ─────────────────────────────────────
+function validatePriceInput(input) {
+  // Povolujeme jen čísla a desetinné čárky/tečky
+  let val = input.value.replace(/[^0-9.,]/g, '')
+  // Normalizuj čárku na tečku
+  val = val.replace(',', '.')
+  // Zabraň více desetinným tečkám
+  const parts = val.split('.')
+  if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('')
+  // Záporná čísla nejsou
+  if (parseFloat(val) < 0) val = ''
+  input.value = val
+}
+
+function validatePriceRange() {
+  const minEl = document.getElementById('price-min')
+  const maxEl = document.getElementById('price-max')
+  const errEl = document.getElementById('price-error')
+  if (!minEl || !maxEl) return true
+
+  const od = parseFloat(minEl.value)
+  const do_ = parseFloat(maxEl.value)
+
+  if (minEl.value && maxEl.value && !isNaN(od) && !isNaN(do_)) {
+    if (od > do_) {
+      if (errEl) { errEl.textContent = 'Cena „od" musí být menší než „do".'; errEl.style.display = 'block' }
+      minEl.style.borderColor = '#DC2626'
+      maxEl.style.borderColor = '#DC2626'
+      return false
+    }
+  }
+  if (errEl) errEl.style.display = 'none'
+  minEl.style.borderColor = ''
+  maxEl.style.borderColor = ''
+  return true
+}
+
+function validateEditPriceRange() {
+  const minEl = document.getElementById('edit-cena-od')
+  const maxEl = document.getElementById('edit-cena-do')
+  const errEl = document.getElementById('edit-error')
+  if (!minEl || !maxEl) return true
+
+  const od = parseFloat(minEl.value)
+  const do_ = parseFloat(maxEl.value)
+
+  if (minEl.value && maxEl.value && !isNaN(od) && !isNaN(do_)) {
+    if (od > do_) {
+      if (errEl) { errEl.textContent = 'Cena „od" musí být menší než „do".'; errEl.style.display = 'block' }
+      return false
+    }
+  }
+  if (errEl) errEl.style.display = 'none'
+  return true
 }
 
 // ─────────────────────────────────────
@@ -504,6 +565,7 @@ async function pridatInzerat() {
 
   if (!nazev)   return showError('add-error', 'Zadej název inzerátu.')
   if (!predmet) return showError('add-error', 'Vyber předmět.')
+  if (!dohod && !validatePriceRange()) return
 
   setLoading('btn-add', true)
 
@@ -515,8 +577,8 @@ async function pridatInzerat() {
     user_id: currentUser.id, nazev, popis, predmet,
     lokalita:    lok || null,
     koho_hledam: koho !== 'Koho hledám' ? koho : null,
-    cena_od:     cenaOd ? parseInt(cenaOd) : null,
-    cena_do:     cenaDo ? parseInt(cenaDo) : null,
+    cena_od:     cenaOd ? parseFloat(cenaOd) : null,
+    cena_do:     cenaDo ? parseFloat(cenaDo) : null,
     cena_dohodou: dohod,
     obrazek_url: obrazekUrl,
     autor_jmeno: currentUser.user_metadata?.jmeno || null,
@@ -623,6 +685,8 @@ function fmt(cmd) { document.execCommand(cmd, false, null); document.getElementB
 function fmtBlock(tag) { if (tag) document.execCommand('formatBlock', false, tag); document.getElementById('rte').focus() }
 function togglePriceDohodou(cb) {
   ;['price-min','price-max'].forEach(id => { const el = document.getElementById(id); el.disabled = cb.checked; el.style.opacity = cb.checked ? '0.4' : '1' })
+  const errEl = document.getElementById('price-error')
+  if (cb.checked && errEl) errEl.style.display = 'none'
 }
 function openPredmet()  { document.getElementById('predmet-panel').classList.add('open'); document.getElementById('predmet-chevron').style.transform = 'rotate(180deg)' }
 function closePredmet() { document.getElementById('predmet-panel').classList.remove('open'); document.getElementById('predmet-chevron').style.transform = 'rotate(0deg)' }
@@ -647,10 +711,6 @@ function selectDd(id, val) { document.getElementById(id+'-label').textContent = 
 document.addEventListener('click', e => { if (!e.target.closest('.select-wrap') && !e.target.closest('.dropdown-list')) document.querySelectorAll('.dropdown-list').forEach(d => d.classList.remove('open')) })
 
 // ─────────────────────────────────────
-//  GLOBAL EXPORT
-// ─────────────────────────────────────
-
-// ─────────────────────────────────────
 //  DARK MODE
 // ─────────────────────────────────────
 function toggleDarkMode() {
@@ -672,11 +732,10 @@ function initDarkMode() {
   const isDark = saved !== null ? saved === '1' : prefersDark
   if (isDark) {
     document.body.classList.add('dark')
-    const emoji = '☀️'
     const btn = document.getElementById('dark-mode-btn')
-    if (btn) btn.textContent = emoji
+    if (btn) btn.textContent = '☀️'
     const btnMobile = document.getElementById('dark-mode-btn-mobile')
-    if (btnMobile) btnMobile.textContent = emoji
+    if (btnMobile) btnMobile.textContent = '☀️'
     const labelMobile = document.getElementById('dark-mode-label-mobile')
     if (labelMobile) labelMobile.textContent = 'Denní režim'
   }
@@ -698,18 +757,22 @@ function clearMobileSearch() {
 }
 
 function syncMobileSearch(val) {
-  const desktop = document.getElementById('search-input')
-  if (desktop) desktop.value = val
   zobrazFiltrované()
 }
 
 function setKategorieById(kat) {
   const tab = document.querySelector(`.tab[data-kategorie="${kat}"]`)
   if (tab) setKategorie(tab)
-  // Zvýrazni oblíbené tlačítko
-  const favBtn = document.querySelector('.bottom-action.fav')
-  if (favBtn) favBtn.classList.toggle('active', kat === 'oblibene')
+  // Synchronizuj select
+  const sel = document.getElementById('browse-cat-select')
+  if (sel) sel.value = kat
 }
+
+// Listener pro select → kategorie
+document.addEventListener('kategorieChange', (e) => {
+  aktivniKategorie = e.detail
+  zobrazFiltrované()
+})
 
 Object.assign(window, { toggleMobileSearch, clearMobileSearch, syncMobileSearch, setKategorieById })
 
@@ -796,7 +859,6 @@ async function nactiPrijatyZajem() {
 
   list.innerHTML = '<div class="profil-empty"><div class="profil-empty-icon">⏳</div><p>Načítám...</p></div>'
 
-  // Načti moje inzeráty nejdřív, pak zájem o ně
   const { data: mojeInzeraty } = await supabase
     .from('inzeraty')
     .select('id')
@@ -917,7 +979,7 @@ async function odeslatzajem() {
 }
 
 let inzeratProEdit = null
-let editNovyObrazek = null // nový soubor fotky nebo null
+let editNovyObrazek = null
 
 function editPreviewImg(input) {
   if (!input.files?.[0]) return
@@ -938,7 +1000,6 @@ function otevritEditModal(id) {
   inzeratProEdit = id
   editNovyObrazek = null
 
-  // Reset fotky
   const prev = document.getElementById('edit-upload-preview')
   const ph   = document.getElementById('edit-upload-placeholder')
   const imgInput = document.getElementById('edit-img-input')
@@ -953,7 +1014,6 @@ function otevritEditModal(id) {
     }
   }
 
-  // Pokus načíst čerstvá data z Supabase (async)
   supabase.from('inzeraty').select('*').eq('id', id).single().then(({ data }) => {
     if (data) {
       document.getElementById('edit-nazev').value    = data.nazev || ''
@@ -972,7 +1032,6 @@ function otevritEditModal(id) {
     }
   })
 
-  // Předvyplň z cache
   document.getElementById('edit-nazev').value    = inzerat.nazev || ''
   document.getElementById('edit-predmet').value  = inzerat.predmet || ''
   document.getElementById('edit-lokalita').value = inzerat.lokalita || ''
@@ -1004,11 +1063,11 @@ async function ulozitUpravuInzeratu() {
 
   if (!nazev)   return showError('edit-error', 'Zadej název inzerátu.')
   if (!predmet) return showError('edit-error', 'Zadej předmět.')
+  if (!dohodou && !validateEditPriceRange()) return
 
   setLoading('btn-edit-save', true)
 
-  // Upload nové fotky pokud vybraná
-  let obrazekUrl = undefined // undefined = neměnit
+  let obrazekUrl = undefined
   if (editNovyObrazek) {
     obrazekUrl = await uploadObrazek(editNovyObrazek)
   }
@@ -1016,8 +1075,8 @@ async function ulozitUpravuInzeratu() {
   const updates = {
     nazev, predmet,
     lokalita:    lokalita || null,
-    cena_od:     cenaOd ? parseInt(cenaOd) : null,
-    cena_do:     cenaDo ? parseInt(cenaDo) : null,
+    cena_od:     cenaOd ? parseFloat(cenaOd) : null,
+    cena_do:     cenaDo ? parseFloat(cenaDo) : null,
     cena_dohodou: dohodou
   }
   if (obrazekUrl !== undefined) updates.obrazek_url = obrazekUrl
@@ -1038,10 +1097,9 @@ async function ulozitUpravuInzeratu() {
 Object.assign(window, {
   nactiProfil, switchProfilTab, potvrditSmazani, smazatInzerat,
   projevitZajem, odeslatzajem,
-  otevritEditModal, toggleEditDohodou, ulozitUpravuInzeratu, editPreviewImg
+  otevritEditModal, toggleEditDohodou, ulozitUpravuInzeratu, editPreviewImg,
+  validatePriceInput, validatePriceRange, validateEditPriceRange
 })
-
-
 
 Object.assign(window, {
   showPage, closeModal, doLogin, doRegister, doLogout,
