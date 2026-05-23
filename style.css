@@ -1053,3 +1053,94 @@ body.dark .nav-link-btn:hover {
   background: rgba(255,255,255,0.12);
   color: white;
 }
+
+/* ══════ BROWSE SEARCH BAR ══════ */
+.browse-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 13px 18px;
+  margin: 18px 0 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.browse-search-bar:focus-within {
+  border-color: #5B5FEF;
+  box-shadow: 0 0 0 4px rgba(91,95,239,0.10);
+}
+.browse-search-bar svg {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: color 0.2s;
+}
+.browse-search-bar:focus-within svg { color: #5B5FEF; }
+.browse-search-bar input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--dark);
+  outline: none;
+}
+.browse-search-bar input::placeholder { color: var(--muted); font-weight: 400; }
+.browse-search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.browse-search-clear:hover { color: var(--dark); background: var(--border); }
+
+/* ══════ BROWSE QUICK KATEGORIE ══════ */
+.browse-quick-cats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.quick-cat {
+  border: none;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 40px;
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--mid);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.quick-cat:hover {
+  border-color: #5B5FEF;
+  color: #5B5FEF;
+  transform: translateY(-1px);
+}
+.quick-cat.active {
+  background: #5B5FEF;
+  border-color: #5B5FEF;
+  color: white;
+  box-shadow: 0 3px 10px rgba(91,95,239,0.3);
+}
+
+/* Dark mode */
+body.dark .browse-search-bar {
+  background: #1e293b;
+  border-color: #334155;
+}
+body.dark .browse-search-bar input { color: #f1f5f9; }
+body.dark .browse-search-bar:focus-within { border-color: #818cf8; box-shadow: 0 0 0 4px rgba(129,140,248,0.12); }
+body.dark .browse-search-bar:focus-within svg { color: #818cf8; }
+body.dark .quick-cat { background: #1e293b; border-color: #334155; color: #94a3b8; }
+body.dark .quick-cat:hover { border-color: #818cf8; color: #818cf8; }
+body.dark .quick-cat.active { background: #4f46e5; border-color: #4f46e5; color: white; }
