@@ -52,20 +52,31 @@ function pageFromHash() {
 //  INIT
 // ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Detekce reset tokenu v URL (Supabase posílá #access_token=...&type=recovery)
+  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
+  const isRecovery = hashParams.get('type') === 'recovery'
+
   const { data: { session } } = await supabase.auth.getSession()
   if (session) {
     currentUser = session.user
-    // Jen aktualizuj UI, nespouštěj oslavu ani přesměrování
     _updateNavUI(currentUser, false)
   }
 
   supabase.auth.onAuthStateChange((_event, session) => {
+    if (_event === 'PASSWORD_RECOVERY') {
+      // Reset token byl ověřen — otevři modal pro nové heslo
+      document.getElementById('modal-new-password').classList.add('show')
+      return
+    }
     if (session) {
       currentUser = session.user
-      if (_event === 'SIGNED_IN') {
-        // Skutečné přihlášení — ukáže oslavu, zůstane na home page
+      if (_event === 'SIGNED_IN' && !isRecovery) {
         _updateNavUI(currentUser, true)
-      } else if (_event === 'USER_UPDATED' || _event === 'TOKEN_REFRESHED') {
+      } else if (_event === 'USER_UPDATED') {
+        _updateNavUI(currentUser, false)
+        closeModal('modal-new-password')
+        showToast('✅ Heslo bylo úspěšně změněno!')
+      } else if (_event === 'TOKEN_REFRESHED') {
         _updateNavUI(currentUser, false)
       }
     } else {
@@ -85,9 +96,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   })
 
   // Nastav počáteční stránku dle hashe nebo výchozí home
-  const initialPage = pageFromHash()
+  // Pokud je recovery token, ignoruj hash a jdi na home (modal se otevře sám)
+  const initialPage = isRecovery ? 'page-home' : pageFromHash()
   _showPageInternal(initialPage, false)
-  // Vždy nastav history state pro aktuální hash (i při prvním načtení)
   history.replaceState({ page: initialPage }, '', '#' + initialPage)
   document.title = PAGE_TITLES[initialPage] || 'nauc.me'
 })
@@ -190,8 +201,25 @@ async function doRegister() {
 }
 
 // ─────────────────────────────────────
-//  ZAPOMENUTÉ HESLO
+//  NOVÉ HESLO (po resetu)
 // ─────────────────────────────────────
+async function doSetNewPassword() {
+  const heslo  = document.getElementById('new-password-input')?.value
+  const heslo2 = document.getElementById('new-password-input2')?.value
+
+  if (!heslo)              return showError('new-password-error', 'Zadej nové heslo.')
+  if (heslo.length < 6)    return showError('new-password-error', 'Heslo musí mít alespoň 6 znaků.')
+  if (heslo !== heslo2)    return showError('new-password-error', 'Hesla se neshodují.')
+
+  setLoading('btn-set-new-password', true)
+  const { error } = await supabase.auth.updateUser({ password: heslo })
+  setLoading('btn-set-new-password', false)
+
+  if (error) return showError('new-password-error', prekladChyby(error.message))
+  // Úspěch — zachytí onAuthStateChange USER_UPDATED
+}
+
+
 function openForgotModal() {
   const emailInput = document.getElementById('forgot-email')
   // Předvyplň email z login formuláře pokud je zadán
@@ -1151,7 +1179,7 @@ Object.assign(window, {
 
 Object.assign(window, {
   showPage, closeModal, doLogin, doRegister, doLogout,
-  openForgotModal, doForgotPassword,
+  openForgotModal, doForgotPassword, doSetNewPassword,
   openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
   togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
   useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
