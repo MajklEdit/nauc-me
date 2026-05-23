@@ -1006,3 +1006,50 @@ body.dark .browse-bottom-bar { background: #1e293b; border-top-color: #334155; }
 body.dark .mobile-search-input-wrap { background: #0f172a; }
 body.dark .mobile-search-input-wrap input { color: #f1f5f9; }
 body.dark .mobile-search-input-wrap input::placeholder { color: #64748b; }
+
+/* ══════ NAV LINKS ══════ */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 20px;
+}
+.nav-link-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.85);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-link-btn:hover {
+  background: rgba(255,255,255,0.18);
+  color: white;
+}
+
+/* Nav actions — větší mezery mezi tlačítky */
+.nav-actions {
+  gap: 10px !important;
+}
+.nav-actions span {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+  .nav-links { display: none; }
+}
+
+/* Dark mode nav-links */
+body.dark .nav-link-btn {
+  color: rgba(255,255,255,0.7);
+}
+body.dark .nav-link-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: white;
+}
