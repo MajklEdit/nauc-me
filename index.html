@@ -31,6 +31,75 @@
 
     /* Cards grid id */
     #cards-grid { display: contents; }
+
+    /* Browse search + kategorie bar */
+    .browse-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .browse-search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 14px;
+      flex: 1;
+      min-width: 180px;
+      max-width: 340px;
+      transition: border-color 0.2s;
+    }
+    .browse-search-wrap:focus-within {
+      border-color: #5B5FEF;
+    }
+    .browse-search-wrap input {
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      color: var(--dark);
+      outline: none;
+      width: 100%;
+    }
+    .browse-search-wrap input::placeholder { color: var(--muted); }
+
+    .browse-cat-select {
+      appearance: none;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 9px 36px 9px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--dark);
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      transition: border-color 0.2s;
+      outline: none;
+      flex-shrink: 0;
+    }
+    .browse-cat-select:focus { border-color: #5B5FEF; }
+
+    /* Cena chyba */
+    .price-error {
+      display: none;
+      background: #FEF2F2;
+      color: #DC2626;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    /* Mobilní: skrýt odhlásit tlačítko v navbaru */
+    @media (max-width: 700px) {
+      .nav-logout-mobile-hide { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -74,10 +143,13 @@
 <nav class="navbar">
   <div class="navbar-inner">
     <div class="nav-logo" onclick="showPage('page-home')">nauc<span>.</span>me</div>
-    <div class="nav-search">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input type="text" id="search-input" placeholder="🔍 Hledat tutora, předmět..." oninput="filterInzeraty()" autocomplete="off">
+
+    <!-- Navigační breadcrumb / stránkové odkazy -->
+    <div class="nav-links">
+      <button class="nav-link-btn" onclick="showPage('page-home')">Domů</button>
+      <button class="nav-link-btn" onclick="showPage('page-browse')">Tutori</button>
     </div>
+
     <div class="nav-actions">
       <!-- Dark mode jen na desktopu v navbaru -->
       <button class="dark-mode-btn" id="dark-mode-btn" onclick="toggleDarkMode()" title="Přepnout režim">🌙</button>
@@ -88,7 +160,7 @@
       <span id="nav-li" style="display:none">
         <button class="nav-btn ghost" onclick="showPage('page-profil')" id="nav-user-name">Můj profil</button>
         <button class="nav-btn ghost" onclick="showPage('page-add')">+ Přidat inzerát</button>
-        <button class="nav-btn solid" onclick="doLogout()">Odhlásit se</button>
+        <button class="nav-btn solid nav-logout-mobile-hide" onclick="doLogout()">Odhlásit se</button>
       </span>
     </div>
     <button class="nav-hamburger" onclick="openMenu()">
@@ -152,6 +224,24 @@
   <div class="page-wrap">
     <div class="browse-header">
       <h2>🔍 Procházet tutory</h2>
+
+      <!-- Search + kategorie select -->
+      <div class="browse-filter-bar">
+        <div class="browse-search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="browse-search-input" placeholder="Hledat tutora, předmět..." oninput="filterInzeraty()" autocomplete="off">
+        </div>
+        <select class="browse-cat-select" id="browse-cat-select" onchange="setKategorieFromSelect(this.value)">
+          <option value="vse">🗂 Všechny kategorie</option>
+          <option value="matematika">📐 Matematika</option>
+          <option value="jazyky">🗣 Jazyky</option>
+          <option value="prirodni">🔬 Přírodní vědy</option>
+          <option value="humanitni">📖 Humanitní vědy</option>
+          <option value="programovani">💻 Programování</option>
+        </select>
+      </div>
+
+      <!-- Tab lišta (skrytá na mobilu, viditelná na desktopu) -->
       <div class="tabs">
         <div class="tab active" data-kategorie="vse" onclick="setKategorie(this)">Vše</div>
         <div class="tab" data-kategorie="matematika" onclick="setKategorie(this)">Matematika</div>
@@ -159,7 +249,6 @@
         <div class="tab" data-kategorie="prirodni" onclick="setKategorie(this)">Přírodní vědy</div>
         <div class="tab" data-kategorie="humanitni" onclick="setKategorie(this)">Humanitní</div>
         <div class="tab" data-kategorie="programovani" onclick="setKategorie(this)">Programování</div>
-        <div class="tab" data-kategorie="oblibene" onclick="setKategorie(this)">❤️ Oblíbené</div>
       </div>
     </div>
     <div class="cards-grid">
@@ -175,11 +264,6 @@
         <input type="text" id="mobile-search-input" placeholder="Hledat tutora, předmět..." oninput="syncMobileSearch(this.value)" autocomplete="off">
         <button class="mobile-search-clear" onclick="clearMobileSearch()">✕</button>
       </div>
-    </div>
-    <div class="bottom-divider"></div>
-    <div class="bottom-action fav" onclick="setKategorieById('oblibene')">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      <span>Oblíbené</span>
     </div>
   </div>
 </div>
@@ -308,10 +392,13 @@
 
     <div class="form-section-title">Cena za hodinu</div>
     <div class="price-row">
-      <input class="form-input" type="number" placeholder="Od (Kč)" id="price-min">
+      <input class="form-input" type="text" inputmode="decimal" placeholder="Od (Kč)" id="price-min"
+        oninput="validatePriceInput(this)" onblur="validatePriceRange()">
       <span style="color:var(--muted);font-size:18px;flex-shrink:0">—</span>
-      <input class="form-input" type="number" placeholder="Do (Kč)" id="price-max">
+      <input class="form-input" type="text" inputmode="decimal" placeholder="Do (Kč)" id="price-max"
+        oninput="validatePriceInput(this)" onblur="validatePriceRange()">
     </div>
+    <div class="price-error" id="price-error"></div>
     <label class="checkbox-row">
       <input type="checkbox" id="price-dohodou" onchange="togglePriceDohodou(this)">
       <span class="checkbox-box"></span>
@@ -412,7 +499,7 @@
     <div class="detail-body">
       <div class="detail-top-row">
         <div class="detail-tags" id="detail-tags"></div>
-        <button class="detail-heart-btn" id="detail-heart-btn" onclick="toggleDetailOblibeny()">🤍</button>
+        <button class="detail-heart-btn" id="detail-heart-btn" style="display:none">🤍</button>
       </div>
       <h2 class="detail-nazev" id="detail-nazev"></h2>
       <div class="detail-meta" id="detail-meta"></div>
@@ -458,9 +545,13 @@
     <input class="modal-edit-input auth-input" id="edit-nazev" type="text" placeholder="Název inzerátu" style="margin-bottom:10px">
     <input class="modal-edit-input auth-input" id="edit-predmet" type="text" placeholder="Předmět" style="margin-bottom:10px">
     <input class="modal-edit-input auth-input" id="edit-lokalita" type="text" placeholder="Lokalita (Praha, Online...)" style="margin-bottom:10px">
-    <div style="display:flex;gap:8px;margin-bottom:10px">
-      <input class="modal-edit-input auth-input" id="edit-cena-od" type="number" placeholder="Cena od (Kč)" style="margin-bottom:0;flex:1">
-      <input class="modal-edit-input auth-input" id="edit-cena-do" type="number" placeholder="Cena do (Kč)" style="margin-bottom:0;flex:1">
+    <div style="display:flex;gap:8px;margin-bottom:4px">
+      <input class="modal-edit-input auth-input" id="edit-cena-od" type="text" inputmode="decimal" placeholder="Cena od (Kč)"
+        oninput="validatePriceInput(this)" onblur="validateEditPriceRange()"
+        style="margin-bottom:0;flex:1">
+      <input class="modal-edit-input auth-input" id="edit-cena-do" type="text" inputmode="decimal" placeholder="Cena do (Kč)"
+        oninput="validatePriceInput(this)" onblur="validateEditPriceRange()"
+        style="margin-bottom:0;flex:1">
     </div>
     <label style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px;color:var(--mid);cursor:pointer">
       <input type="checkbox" id="edit-dohodou" onchange="toggleEditDohodou(this)">
@@ -471,6 +562,24 @@
     <button class="modal-btn secondary" onclick="closeModal('modal-edit')">Zrušit</button>
   </div>
 </div>
+
+<script>
+  // Synchronizace browse select s kategorie systémem
+  function setKategorieFromSelect(val) {
+    const tab = document.querySelector(`.tab[data-kategorie="${val}"]`)
+    if (tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
+      tab.classList.add('active')
+    }
+    // Nastav aktivní kategorii a přefiltruj
+    if (window.filterInzeraty) {
+      // Aktualizace přes globální proměnnou
+      const event = new CustomEvent('kategorieChange', { detail: val })
+      document.dispatchEvent(event)
+    }
+  }
+  window.setKategorieFromSelect = setKategorieFromSelect
+</script>
 
 <!-- ES module — nutné pro import Supabase -->
 <script type="module" src="app.js"></script>
