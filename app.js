@@ -87,9 +87,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Nastav počáteční stránku dle hashe nebo výchozí home
   const initialPage = pageFromHash()
   _showPageInternal(initialPage, false)
-  if (!window.location.hash) {
-    history.replaceState({ page: 'page-home' }, '', '#page-home')
-  }
+  // Vždy nastav history state pro aktuální hash (i při prvním načtení)
+  history.replaceState({ page: initialPage }, '', '#' + initialPage)
+  document.title = PAGE_TITLES[initialPage] || 'nauc.me'
 })
 
 // ─────────────────────────────────────
@@ -190,8 +190,38 @@ async function doRegister() {
 }
 
 // ─────────────────────────────────────
-//  PŘIHLÁŠENÍ
+//  ZAPOMENUTÉ HESLO
 // ─────────────────────────────────────
+function openForgotModal() {
+  const emailInput = document.getElementById('forgot-email')
+  // Předvyplň email z login formuláře pokud je zadán
+  const loginEmail = document.getElementById('login-email')?.value.trim()
+  if (emailInput && loginEmail) emailInput.value = loginEmail
+  const errEl = document.getElementById('forgot-error')
+  if (errEl) errEl.style.display = 'none'
+  const btn = document.getElementById('btn-forgot')
+  if (btn) { btn.disabled = false; btn.textContent = 'Odeslat odkaz' }
+  document.getElementById('modal-forgot').classList.add('show')
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('forgot-email')?.value.trim()
+  if (!email) return showError('forgot-error', 'Zadej svůj email.')
+  if (!email.includes('@')) return showError('forgot-error', 'Zadej platný email.')
+
+  setLoading('btn-forgot', true)
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  })
+  setLoading('btn-forgot', false)
+
+  if (error) return showError('forgot-error', prekladChyby(error.message))
+
+  closeModal('modal-forgot')
+  showToast('📧 Odkaz pro reset hesla byl odeslán!')
+}
+
+
 async function doLogin() {
   const email = document.getElementById('login-email').value.trim()
   const heslo = document.getElementById('login-heslo').value
@@ -1121,6 +1151,7 @@ Object.assign(window, {
 
 Object.assign(window, {
   showPage, closeModal, doLogin, doRegister, doLogout,
+  openForgotModal, doForgotPassword,
   openMenu, closeMenu, togglePw, previewImg, fmt, fmtBlock,
   togglePriceDohodou, openPredmet, filterPredmet, selectPredmet,
   useCustomPredmet, toggleDropdown, selectDd, pridatInzerat,
