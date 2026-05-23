@@ -57,9 +57,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isRecovery = hashParams.get('type') === 'recovery'
 
   // Listener musí být registrován PŘED getSession aby zachytil PASSWORD_RECOVERY
+  // Flag — po inicializaci teprve reaguj na logout
+  let appReady = false
+
   supabase.auth.onAuthStateChange((_event, session) => {
     if (_event === 'PASSWORD_RECOVERY') {
-      // Reset token byl ověřen — otevři modal pro nové heslo
       setTimeout(() => {
         document.getElementById('modal-new-password').classList.add('show')
       }, 100)
@@ -77,7 +79,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         _updateNavUI(currentUser, false)
       }
     } else {
-      currentUser = null; onLogout()
+      // Reaguj na logout jen pokud je aplikace plně načtená (ne při refreshi)
+      if (appReady) {
+        currentUser = null; onLogout()
+      }
     }
   })
 
@@ -87,8 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     _updateNavUI(currentUser, false)
   }
 
-  // Pokud je recovery v URL, Supabase ho zpracuje přes onAuthStateChange výše
-  // Ale jako záloha — pokud session existuje a je recovery, otevři modal rovnou
   if (isRecovery && session) {
     setTimeout(() => {
       document.getElementById('modal-new-password').classList.add('show')
