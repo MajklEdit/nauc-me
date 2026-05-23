@@ -56,16 +56,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
   const isRecovery = hashParams.get('type') === 'recovery'
 
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) {
-    currentUser = session.user
-    _updateNavUI(currentUser, false)
-  }
-
+  // Listener musí být registrován PŘED getSession aby zachytil PASSWORD_RECOVERY
   supabase.auth.onAuthStateChange((_event, session) => {
     if (_event === 'PASSWORD_RECOVERY') {
       // Reset token byl ověřen — otevři modal pro nové heslo
-      document.getElementById('modal-new-password').classList.add('show')
+      setTimeout(() => {
+        document.getElementById('modal-new-password').classList.add('show')
+      }, 100)
       return
     }
     if (session) {
@@ -84,6 +81,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   })
 
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session && !isRecovery) {
+    currentUser = session.user
+    _updateNavUI(currentUser, false)
+  }
+
+  // Pokud je recovery v URL, Supabase ho zpracuje přes onAuthStateChange výše
+  // Ale jako záloha — pokud session existuje a je recovery, otevři modal rovnou
+  if (isRecovery && session) {
+    setTimeout(() => {
+      document.getElementById('modal-new-password').classList.add('show')
+    }, 200)
+  }
+
   initDarkMode()
   nactiInzeraty()
   const si = document.getElementById('search-input'); if (si) si.value = ''
@@ -96,7 +107,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   })
 
   // Nastav počáteční stránku dle hashe nebo výchozí home
-  // Pokud je recovery token, ignoruj hash a jdi na home (modal se otevře sám)
   const initialPage = isRecovery ? 'page-home' : pageFromHash()
   _showPageInternal(initialPage, false)
   history.replaceState({ page: initialPage }, '', '#' + initialPage)
@@ -239,7 +249,7 @@ async function doForgotPassword() {
 
   setLoading('btn-forgot', true)
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: window.location.origin + window.location.pathname
+    redirectTo: 'https://nauc-me.vercel.app'
   })
   setLoading('btn-forgot', false)
 
