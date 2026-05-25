@@ -10,15 +10,14 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // ─────────────────────────────────────
-//  STAV
+//  stav
 // ─────────────────────────────────────
 let currentUser = null
 let vsechnyInzeraty = []
 let aktivniKategorie = 'vse'
-// Oblíbené funkce ODSTRANĚNA
 
 // ─────────────────────────────────────
-//  HISTORY / ROUTER
+//  rozdělení názvů jednotlivých stránek
 // ─────────────────────────────────────
 const PAGE_TITLES = {
   'page-home':     'nauc.me – Doučování mezi studenty',
@@ -49,15 +48,15 @@ function pageFromHash() {
 }
 
 // ─────────────────────────────────────
-//  INIT
+//  inicializace
 // ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  // Detekce reset tokenu v URL (Supabase posílá #access_token=...&type=recovery)
+  // detekce reset tokenu v URL (Supabase posílá #access_token=...&type=recovery)
   const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
   const isRecovery = hashParams.get('type') === 'recovery'
 
-  // Listener musí být registrován PŘED getSession aby zachytil PASSWORD_RECOVERY
-  // Flag — po inicializaci teprve reaguj na logout
+  // listener musí být registrován PŘED getSession aby zachytil PASSWORD_RECOVERY
+  // po inicializaci teprve reaguj na logout
   let appReady = false
 
   supabase.auth.onAuthStateChange((_event, session) => {
@@ -79,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         _updateNavUI(currentUser, false)
       }
     } else {
-      // Reaguj na logout jen pokud je aplikace plně načtená (ne při refreshi)
+      // reaguj na logout jen pokud je aplikace plně načtená (ne při refreshi)
       if (appReady) {
         currentUser = null; onLogout()
       }
@@ -109,7 +108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     })
   })
 
-  // Nastav počáteční stránku dle hashe nebo výchozí home
+  // nastav počáteční stránku dle hashe nebo výchozí home
   const initialPage = isRecovery ? 'page-home' : pageFromHash()
   _showPageInternal(initialPage, false)
   history.replaceState({ page: initialPage }, '', '#' + initialPage)
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 })
 
 // ─────────────────────────────────────
-//  AKTUALIZACE NAV UI
+//  změna rozhraní navigace při přihlášení/odhlášení
 // ─────────────────────────────────────
 function _updateNavUI(user, showCelebration) {
   const navLo = document.getElementById('nav-lo')
@@ -135,12 +134,11 @@ function _updateNavUI(user, showCelebration) {
   if (showCelebration && !window._loginAnimShown) {
     window._loginAnimShown = true
     showLoginCelebration(jmeno)
-    // Zůstaneme na home page — žádné přesměrování
   }
 }
 
 // ─────────────────────────────────────
-//  NAVIGACE
+//  navigace
 // ─────────────────────────────────────
 function showPage(id) {
   if (id === 'page-add' && !currentUser) {
@@ -184,7 +182,7 @@ function closeModal(id) {
 }
 
 // ─────────────────────────────────────
-//  REGISTRACE
+//  registrace
 // ─────────────────────────────────────
 async function doRegister() {
   const jmeno    = document.getElementById('reg-jmeno').value.trim()
@@ -214,7 +212,7 @@ async function doRegister() {
 }
 
 // ─────────────────────────────────────
-//  NOVÉ HESLO (po resetu)
+//  nové heslo (reset)
 // ─────────────────────────────────────
 async function doSetNewPassword() {
   const heslo  = document.getElementById('new-password-input')?.value
@@ -229,13 +227,13 @@ async function doSetNewPassword() {
   setLoading('btn-set-new-password', false)
 
   if (error) return showError('new-password-error', prekladChyby(error.message))
-  // Úspěch — zachytí onAuthStateChange USER_UPDATED
+  // úspěch — zachytí onAuthStateChange USER_UPDATED
 }
 
 
 function openForgotModal() {
   const emailInput = document.getElementById('forgot-email')
-  // Předvyplň email z login formuláře pokud je zadán
+  // předvyplň email z login formuláře pokud je zadán
   const loginEmail = document.getElementById('login-email')?.value.trim()
   if (emailInput && loginEmail) emailInput.value = loginEmail
   const errEl = document.getElementById('forgot-error')
@@ -274,12 +272,11 @@ async function doLogin() {
   setLoading('btn-login', false)
 
   if (error) return showError('login-error', prekladChyby(error.message))
-  // Po úspěšném přihlášení jdeme na home page
   showPage('page-home')
 }
 
 // ─────────────────────────────────────
-//  ODHLÁŠENÍ
+//  odhlášení
 // ─────────────────────────────────────
 async function doLogout() {
   await supabase.auth.signOut()
@@ -318,7 +315,7 @@ function onLogout() {
 }
 
 // ─────────────────────────────────────
-//  NAČTENÍ INZERÁTŮ
+//  načtení inzerátů
 // ─────────────────────────────────────
 async function nactiInzeraty() {
   const grid = document.getElementById('cards-grid')
@@ -350,7 +347,7 @@ async function nactiInzeraty() {
 }
 
 // ─────────────────────────────────────
-//  FILTROVÁNÍ A VYHLEDÁVÁNÍ
+//  filtrování a vyhledávání
 // ─────────────────────────────────────
 function setKategorie(el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
@@ -429,7 +426,7 @@ function renderKarta(i) {
 }
 
 // ─────────────────────────────────────
-//  DETAIL INZERÁTU
+//  detail inzerátu
 // ─────────────────────────────────────
 let detailInzeratId = null
 
@@ -565,17 +562,17 @@ function projevitZajemZDetailu() {
 }
 
 // ─────────────────────────────────────
-//  VALIDACE CEN
+//  kontrola cenových hodnot
 // ─────────────────────────────────────
 function validatePriceInput(input) {
-  // Povolujeme jen čísla a desetinné čárky/tečky
+  // povolení pouze čísel a desetinných čárek
   let val = input.value.replace(/[^0-9.,]/g, '')
-  // Normalizuj čárku na tečku
+  // stanovení desetinné čárky
   val = val.replace(',', '.')
-  // Zabraň více desetinným tečkám
+  // desetinné tečky
   const parts = val.split('.')
   if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('')
-  // Záporná čísla nejsou
+  // eliminace záporných čísel
   if (parseFloat(val) < 0) val = ''
   input.value = val
 }
@@ -623,7 +620,7 @@ function validateEditPriceRange() {
 }
 
 // ─────────────────────────────────────
-//  PŘIDÁNÍ INZERÁTU
+//  přidání inzerátu
 // ─────────────────────────────────────
 async function pridatInzerat() {
   if (!currentUser) { document.getElementById('modal-auth-guard').classList.add('show'); return }
@@ -681,7 +678,7 @@ async function uploadObrazek(file) {
 }
 
 // ─────────────────────────────────────
-//  HELPERS
+//  helpery
 // ─────────────────────────────────────
 function showError(id, msg) {
   const el = document.getElementById(id)
@@ -744,7 +741,7 @@ function getPredmetClass(p = '') {
 }
 
 // ─────────────────────────────────────
-//  MENU / UI
+//  menu / ui
 // ─────────────────────────────────────
 function openMenu()  { document.getElementById('slide-menu').classList.add('open'); document.getElementById('menu-overlay').classList.add('open') }
 function closeMenu() { document.getElementById('slide-menu').classList.remove('open'); document.getElementById('menu-overlay').classList.remove('open') }
@@ -785,7 +782,7 @@ function selectDd(id, val) { document.getElementById(id+'-label').textContent = 
 document.addEventListener('click', e => { if (!e.target.closest('.select-wrap') && !e.target.closest('.dropdown-list')) document.querySelectorAll('.dropdown-list').forEach(d => d.classList.remove('open')) })
 
 // ─────────────────────────────────────
-//  DARK MODE
+//  "dark mode"
 // ─────────────────────────────────────
 function toggleDarkMode() {
   const isDark = document.body.classList.toggle('dark')
@@ -837,7 +834,7 @@ function syncMobileSearch(val) {
 function setKategorieById(kat) {
   const tab = document.querySelector(`.tab[data-kategorie="${kat}"]`)
   if (tab) setKategorie(tab)
-  // Synchronizuj select
+  // synchronizuj select
   const sel = document.getElementById('browse-cat-select')
   if (sel) sel.value = kat
 }
@@ -857,7 +854,7 @@ function clearBrowseSearch() {
   zobrazFiltrované()
 }
 
-// Listener pro select → kategorie
+// listener pro select → kategorie
 document.addEventListener('kategorieChange', (e) => {
   aktivniKategorie = e.detail
   zobrazFiltrované()
@@ -866,7 +863,7 @@ document.addEventListener('kategorieChange', (e) => {
 Object.assign(window, { toggleMobileSearch, clearMobileSearch, syncMobileSearch, setKategorieById })
 
 // ─────────────────────────────────────
-//  PROFIL
+//  profil
 // ─────────────────────────────────────
 async function nactiProfil() {
   if (!currentUser) return
