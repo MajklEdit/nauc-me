@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Toast notifikace */
+    /* "toast notifikace" */
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
       background: #111827; color: white; padding: 12px 22px; border-radius: 12px;
@@ -16,23 +16,23 @@
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* Error messages */
+    /* error hlášení */
     .form-error {
       display: none; background: #FEF2F2; color: #DC2626;
       border-radius: 10px; padding: 10px 14px;
       font-size: 13px; margin-bottom: 10px;
     }
 
-    /* Loading message */
+    /* načítání */
     .loading-msg {
       grid-column: 1/-1; text-align: center;
       padding: 48px 20px; color: var(--muted); font-size: 15px;
     }
 
-    /* Cards grid id */
+    /* cards grid id */
     #cards-grid { display: contents; }
 
-    /* Browse search + kategorie bar */
+    /* vyhledávání */
     .browse-filter-bar {
       display: flex;
       align-items: center;
@@ -85,7 +85,7 @@
     }
     .browse-cat-select:focus { border-color: #5B5FEF; }
 
-    /* Cena chyba */
+    /* chyba v ceně */
     .price-error {
       display: none;
       background: #FEF2F2;
@@ -96,7 +96,7 @@
       margin-top: 6px;
     }
 
-    /* Mobilní: skrýt odhlásit tlačítko v navbaru */
+    /* mobilní: skrýt odhlásit tlačítko v navigaci */
     @media (max-width: 700px) {
       .nav-logout-mobile-hide { display: none !important; }
     }
@@ -104,7 +104,7 @@
 </head>
 <body>
 
-<!-- ══════ MOBILE SLIDE MENU ══════ -->
+<!-- mobilní: menu v navigaci -->
 <div class="menu-overlay" id="menu-overlay" onclick="closeMenu()"></div>
 <div class="slide-menu" id="slide-menu">
   <div class="slide-menu-logo">nauc<span>.</span>me</div>
@@ -132,20 +132,20 @@
       Odhlásit se
     </div>
   </div>
-  <!-- Dark mode tlačítko dole v menu -->
+  <!-- tlačítko pro tmavý režim dole v menu -->
   <div class="slide-menu-darkmode" onclick="toggleDarkMode()">
     <button class="dark-mode-btn" id="dark-mode-btn-mobile">🌙</button>
     <span id="dark-mode-label-mobile">Noční režim</span>
   </div>
 </div>
 
-<!-- ══════ NAVBAR ══════ -->
+<!-- navigace -->
 <nav class="navbar">
   <div class="navbar-inner">
     <div class="nav-logo" onclick="showPage('page-home')">nauc<span>.</span>me</div>
 
     <div class="nav-actions">
-      <!-- Dark mode jen na desktopu v navbaru -->
+      <!-- tmavý režim v desktopové navigaci -->
       <button class="dark-mode-btn" id="dark-mode-btn" onclick="toggleDarkMode()" title="Přepnout režim">🌙</button>
       <span id="nav-lo">
         <button class="nav-btn ghost" onclick="showPage('page-login')">Přihlásit se</button>
@@ -167,7 +167,7 @@
   </div>
 </nav>
 
-<!-- ══════ HOME ══════ -->
+<!-- hlavní stránka / home -->
 <div id="page-home" class="page active">
   <div class="page-wrap">
     <div class="home-headline">
@@ -213,13 +213,13 @@
   </div>
 </div>
 
-<!-- ══════ BROWSE ══════ -->
+<!-- aktivní inzeráty / vyhledávání -->
 <div id="page-browse" class="page">
   <div class="page-wrap">
     <div class="browse-header">
       <h2>Procházet tutory</h2>
 
-      <!-- Search bar -->
+      <!-- vyhledávač -->
       <div class="browse-search-bar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="browse-search-input" placeholder="Hledej předmět, tutora nebo kategorii..." oninput="filterInzeraty()" autocomplete="off">
@@ -228,7 +228,7 @@
         </button>
       </div>
 
-      <!-- Quick kategorie -->
+      <!-- pevné kategorie -->
       <div class="browse-quick-cats">
         <button class="quick-cat active" data-kategorie="vse" onclick="setQuickKat(this)">Vše</button>
         <button class="quick-cat" data-kategorie="matematika" onclick="setQuickKat(this)">📐 Matematika</button>
@@ -255,7 +255,7 @@
   </div>
 </div>
 
-<!-- ══════ LOGIN ══════ -->
+<!-- přihlášení -->
 <div id="page-login" class="page">
   <div class="auth-wrap">
     <div class="auth-box">
@@ -269,7 +269,7 @@
   </div>
 </div>
 
-<!-- ══════ REGISTER ══════ -->
+<!-- registrace -->
 <div id="page-register" class="page">
   <div class="auth-wrap">
     <div class="auth-box">
@@ -293,7 +293,7 @@
   </div>
 </div>
 
-<!-- ══════ ADD ══════ -->
+<!-- přidání inzerátu -->
 <div id="page-add" class="page">
   <div class="add-wrap">
     <div class="add-title">✏️ Přidat inzerát</div>
@@ -394,11 +394,11 @@
   </div>
 </div>
 
-<!-- ══════ PROFIL ══════ -->
+<!-- profil -->
 <div id="page-profil" class="page">
   <div class="page-wrap">
 
-    <!-- Hlavička profilu -->
+    <!-- hlavička profilu -->
     <div class="profil-header">
       <div class="profil-avatar" id="profil-avatar">?</div>
       <div class="profil-info">
@@ -408,7 +408,7 @@
       <button class="nav-btn solid" style="margin-left:auto;font-size:13px;padding:8px 16px" onclick="showPage('page-add')">+ Nový inzerát</button>
     </div>
 
-    <!-- Záložky -->
+    <!-- záložky -->
     <div class="profil-tabs">
       <div class="profil-tab active" id="ptab-moje"    onclick="switchProfilTab('moje')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -420,12 +420,12 @@
       </div>
     </div>
 
-    <!-- TAB: Moje inzeráty -->
+    <!-- okno moje inzeráty -->
     <div id="ptab-content-moje">
       <div id="moje-inzeraty-list" class="profil-list"></div>
     </div>
 
-    <!-- TAB: Přijatý zájem -->
+    <!-- okno přijatých zájmů -->
     <div id="ptab-content-zajem" style="display:none">
       <div id="zajem-list" class="profil-list"></div>
     </div>
@@ -433,7 +433,7 @@
   </div>
 </div>
 
-<!-- ══════ MODALS ══════ -->
+<!-- vyskakovací alerty -->
 <div class="overlay" id="modal-smazat">
   <div class="modal-card">
     <div class="modal-emoji">🗑️</div>
@@ -463,6 +463,7 @@
   </div>
 </div>
 
+<!-- formulář o projevení zájmu -->
 <div class="overlay" id="modal-zajem">
   <div class="modal-card">
     <div class="modal-emoji">✉️</div>
@@ -476,7 +477,7 @@
   </div>
 </div>
 
-<!-- ══════ DETAIL INZERÁTU ══════ -->
+<!-- detail inzerátu-->
 <div class="overlay" id="modal-detail" onclick="zavritDetail(event)">
   <div class="detail-card" id="detail-card-inner">
     <button class="detail-close" onclick="closeModal('modal-detail')">✕</button>
@@ -491,7 +492,7 @@
       <div class="detail-popis" id="detail-popis"></div>
       <div class="detail-autor" id="detail-autor"></div>
 
-      <!-- Zájem formulář přímo v detailu -->
+      <!-- formulář o projevení zájmu přímo v detailu -->
       <div class="detail-zajem-section">
         <h3 class="detail-zajem-title">✉️ Projevit zájem</h3>
         <div class="detail-zajem-fields" id="detail-zajem-fields">
@@ -510,14 +511,14 @@
   </div>
 </div>
 
-<!-- ══════ EDIT INZERÁT MODAL ══════ -->
+<!-- úprava inzerátu -->
 <div class="overlay" id="modal-edit">
   <div class="modal-card" style="max-width:500px;width:92%;padding:28px 24px;max-height:90vh;overflow-y:auto">
     <button class="modal-close-btn" onclick="closeModal('modal-edit')">✕</button>
     <div class="modal-emoji">✏️</div>
     <div class="modal-title">Upravit inzerát</div>
 
-    <!-- Foto upload -->
+    <!-- nahrání fotky -->
     <div class="upload-box" id="edit-upload-box" onclick="document.getElementById('edit-img-input').click()" style="margin-bottom:12px;height:90px">
       <input type="file" id="edit-img-input" accept="image/*" style="display:none" onchange="editPreviewImg(this)">
       <img id="edit-upload-preview" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:12px">
@@ -548,7 +549,7 @@
   </div>
 </div>
 
-<!-- ══════ MODAL — NOVÉ HESLO ══════ -->
+<!-- vyskakovací alert - nové heslo -->
 <div class="overlay" id="modal-new-password">
   <div class="modal-card">
     <div class="modal-emoji">🔐</div>
@@ -567,7 +568,7 @@
   </div>
 </div>
 
-<!-- ══════ MODAL — ZAPOMENUTÉ HESLO ══════ -->
+<!-- vyskakovací alert - zapomenuté heslo -->
 <div class="overlay" id="modal-forgot">
   <div class="modal-card">
     <button class="modal-close-btn" onclick="closeModal('modal-forgot')">✕</button>
@@ -582,16 +583,16 @@
 </div>
 
 <script>
-  // Synchronizace browse select s kategorie systémem
+  // synchronizace browse select s kategorie systémem
   function setKategorieFromSelect(val) {
     const tab = document.querySelector(`.tab[data-kategorie="${val}"]`)
     if (tab) {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
       tab.classList.add('active')
     }
-    // Nastav aktivní kategorii a přefiltruj
+    // nastav aktivní kategorii a přefiltruj
     if (window.filterInzeraty) {
-      // Aktualizace přes globální proměnnou
+      // aktualizace přes globální proměnnou
       const event = new CustomEvent('kategorieChange', { detail: val })
       document.dispatchEvent(event)
     }
